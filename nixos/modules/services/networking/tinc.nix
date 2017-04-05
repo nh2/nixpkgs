@@ -82,6 +82,16 @@ in
               '';
             };
 
+            notify = mkOption {
+              default = false;
+              type = types.bool;
+              description = ''
+                Whether to set the system service type to "notify"; enable this if you want
+                to use system-notify in your tinc-up hook to tell systemd when the VPN interface
+                is up.
+              '';
+            };
+
             package = mkOption {
               type = types.package;
               default = pkgs.tinc_pre;
@@ -157,7 +167,8 @@ in
         restartTriggers = [ config.environment.etc."tinc/${network}/tinc.conf".source ]
           ++ mapAttrsToList (host: _ : config.environment.etc."tinc/${network}/hosts/${host}".source) data.hosts;
         serviceConfig = {
-          Type = "simple";
+          Type = if data.notify then "notify" else "simple";
+          NotifyAccess = "all";
           PIDFile = "/run/tinc.${network}.pid";
           Restart = "on-failure";
         };
