@@ -25,6 +25,18 @@ in
         default = "INFO";
       };
 
+      useRpcbind = mkOption {
+        type = types.bool;
+        description = "Enable use of rpcbind. This is required for Gluster's NFS functionality. You may want to turn it off to reduce the attack surface for DDoS reflection attacks. See https://davelozier.com/glusterfs-and-rpcbind-portmap-ddos-reflection-attacks/ and https://bugzilla.redhat.com/show_bug.cgi?id=1426842 for details.";
+        default = true;
+      };
+
+      enableGlustereventsd = mkOption {
+        type = types.bool;
+        description = "Whether to enable the GlusterFS Events Daemon";
+        default = true;
+      };
+
       extraFlags = mkOption {
         type = types.listOf types.str;
         description = "Extra flags passed to the GlusterFS daemon";
@@ -38,7 +50,7 @@ in
   config = mkIf cfg.enable {
     environment.systemPackages = [ pkgs.glusterfs ];
 
-    services.rpcbind.enable = true;
+    services.rpcbind.enable = cfg.useRpcbind;
 
     systemd.services.glusterd = {
 
@@ -46,8 +58,8 @@ in
 
       wantedBy = [ "multi-user.target" ];
 
-      requires = [ "rpcbind.service" ];
-      after = [ "rpcbind.service" "network.target" "local-fs.target" ];
+      requires = lib.optional cfg.useRpcbind "rpcbind.service";
+      after = [ "network.target" "local-fs.target" ] ++ lib.optional cfg.useRpcbind [ "rpcbind.service" ];
 
       preStart = ''
         install -m 0755 -d /var/log/glusterfs
@@ -73,7 +85,7 @@ in
       };
     };
 
-    systemd.services.glustereventsd = {
+    systemd.services.glustereventsd = mkIf cfg.enableGlustereventsd {
 
       description = "Gluster Events Notifier";
 
