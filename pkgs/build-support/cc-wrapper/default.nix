@@ -10,6 +10,7 @@
 , zlib ? null, extraPackages ? [], extraBuildCommands ? ""
 , dyld ? null # TODO: should this be a setup-hook on dyld?
 , isGNU ? false, isClang ? cc.isClang or false, gnugrep ? null
+, buildPackages ? {}
 }:
 
 with stdenv.lib;
@@ -37,6 +38,18 @@ let
 
   default_cxx_stdlib_compile=optionalString (stdenv.isLinux && !(cc.isGNU or false))
     "-isystem $(echo -n ${cc.gcc}/include/c++/*) -isystem $(echo -n ${cc.gcc}/include/c++/*)/$(${cc.gcc}/bin/gcc -dumpmachine)";
+
+  parseResponseFile = if buildPackages.stdenv.cc or null != null && buildPackages.stdenv.cc != "/dev/null"
+  then buildPackages.stdenv.mkDerivation {
+    name = "parse-response-file";
+    src = ./parseResponseFile.c;
+    buildCommand = ''
+      # Make sure the output file doesn't refer to the input nix path
+      cp "$src" parseResponseFile.c
+      "$CC" -O3 -o "$out" parseResponseFile.c
+    '';
+  } else "";
+
 in
 
 stdenv.mkDerivation {
@@ -261,7 +274,7 @@ stdenv.mkDerivation {
 
       substituteAll ${./add-flags.sh} $out/nix-support/add-flags.sh
       substituteAll ${./add-hardening.sh} $out/nix-support/add-hardening.sh
-      cp -p ${./utils.sh} $out/nix-support/utils.sh
+      substituteAll ${./utils.sh} $out/nix-support/utils.sh
     ''
     + extraBuildCommands;
 
@@ -278,6 +291,8 @@ stdenv.mkDerivation {
        if stdenv.system == "x86_64-darwin" then "/usr/lib/dyld" else
        abort "Don't know the name of the dynamic linker for this platform.")
     else "";
+
+  inherit dynamicLinker parseResponseFile;
 
   crossAttrs = {
     shell = shell.crossDrv + shell.crossDrv.shellPath;

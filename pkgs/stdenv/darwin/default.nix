@@ -61,7 +61,10 @@ in rec {
                           allowedRequisites ? null}:
     let
       thisStdenv = import ../generic {
-        inherit config shell extraBuildInputs allowedRequisites;
+        inherit config shell extraBuildInputs;
+        allowedRequisites = if allowedRequisites == null then null else allowedRequisites ++ [
+          thisStdenv.cc.parseResponseFile
+        ];
 
         name = "stdenv-darwin-boot-${toString step}";
 
@@ -73,6 +76,14 @@ in rec {
           nativeTools  = true;
           nativePrefix = bootstrapTools;
           nativeLibc   = false;
+<<<<<<< HEAD
+=======
+          buildPackages = lib.optionalAttrs (last ? stdenv) {
+            inherit (last) stdenv;
+          };
+          hostPlatform = localSystem;
+          targetPlatform = localSystem;
+>>>>>>> d07f30f628... cc-wrapper: improve response file parsing speed
           libc         = last.pkgs.darwin.Libsystem;
           isClang      = true;
           cc           = { name = "clang-9.9.9"; outPath = bootstrapTools; };
@@ -295,6 +306,14 @@ in rec {
       inherit shell;
       nativeTools = false;
       nativeLibc  = false;
+<<<<<<< HEAD
+=======
+      buildPackages = {
+        inherit (prevStage) stdenv;
+      };
+      hostPlatform = localSystem;
+      targetPlatform = localSystem;
+>>>>>>> d07f30f628... cc-wrapper: improve response file parsing speed
       inherit (pkgs) coreutils binutils gnugrep;
       inherit (pkgs.darwin) dyld;
       cc   = pkgs.llvmPackages.clang-unwrapped;
@@ -315,6 +334,7 @@ in rec {
       gzip ncurses.out ncurses.dev ncurses.man gnused bash gawk
       gnugrep llvmPackages.clang-unwrapped patch pcre.out binutils-raw.out
       binutils-raw.dev binutils gettext
+      cc.parseResponseFile
     ]) ++ (with pkgs.darwin; [
       dyld Libsystem CF cctools ICU libiconv locale
     ]);
