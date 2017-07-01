@@ -39,14 +39,14 @@ let
   default_cxx_stdlib_compile=optionalString (stdenv.isLinux && !(cc.isGNU or false))
     "-isystem $(echo -n ${cc.gcc}/include/c++/*) -isystem $(echo -n ${cc.gcc}/include/c++/*)/$(${cc.gcc}/bin/gcc -dumpmachine)";
 
-  parseResponseFile = if buildPackages.stdenv.cc or null != null && buildPackages.stdenv.cc != "/dev/null"
+  expand-response-params = if buildPackages.stdenv.cc or null != null && buildPackages.stdenv.cc != "/dev/null"
   then buildPackages.stdenv.mkDerivation {
-    name = "parse-response-file";
-    src = ./parseResponseFile.c;
+    name = "expand-response-params";
+    src = ./expand-response-params.c;
     buildCommand = ''
-      # Make sure the output file doesn't refer to the input nix path
-      cp "$src" parseResponseFile.c
-      "$CC" -O3 -o "$out" parseResponseFile.c
+      # Work around "stdenv-darwin-boot-2 is not allowed to refer to path /nix/store/...-expand-response-params.c"
+      cp "$src" expand-response-params.c
+      "$CC" -std=c99 -O3 -o "$out" expand-response-params.c
     '';
   } else "";
 
@@ -292,7 +292,9 @@ stdenv.mkDerivation {
        abort "Don't know the name of the dynamic linker for this platform.")
     else "";
 
-  inherit dynamicLinker parseResponseFile;
+  inherit dynamicLinker expand-response-params;
+
+  expandResponseParams = expand-response-params; # for substitution in utils.sh
 
   crossAttrs = {
     shell = shell.crossDrv + shell.crossDrv.shellPath;
