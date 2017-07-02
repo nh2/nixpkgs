@@ -158,13 +158,21 @@ in
         }
       ));
 
-    networking.interfaces = flip mapAttrs' cfg.networks (network: data: nameValuePair
-      ("tinc.${network}")
-      ({
-        virtual = true;
-        virtualType = "${data.interfaceType}";
-      })
-    );
+    # nh2: Disabled because it can cause "ioctl(TUNSETIFF): Device or resource busy"
+    #      on startup; in particular, the `*-netdev` systemd service
+    #      created by `createTunDevice` in `network-interfaces-scripted.nix`
+    #      can fail.
+    #      I suspect that this is because it races with the tinc systemd service
+    #      below, so if tinc creates the interface first and starts sending
+    #      data on it, the `*-netdev` service can't do its `ip tuntap`/`mode`
+    #      setting on the running device.
+    # networking.interfaces = flip mapAttrs' cfg.networks (network: data: nameValuePair
+    #   ("tinc.${network}")
+    #   ({
+    #     virtual = true;
+    #     virtualType = "${data.interfaceType}";
+    #   })
+    # );
 
     systemd.services = flip mapAttrs' cfg.networks (network: data: nameValuePair
       ("tinc.${network}")
