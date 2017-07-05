@@ -6,6 +6,11 @@
 , stdenv
 , coreutils
 , gnugrep
+<<<<<<< HEAD
+=======
+, buildPackages
+, hostPlatform
+>>>>>>> 754c3f6ba4... cc-wrapper: fix response file parsing on ios-cross
 , targetPlatform
 }:
 
@@ -28,9 +33,14 @@ let
 
   sdk = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhone${sdkType}.platform/Developer/SDKs/iPhone${sdkType}${sdkVer}.sdk";
 
+<<<<<<< HEAD
   /* TODO: Properly integrate with gcc-cross-wrapper */
   wrapper = import ../../../build-support/cc-wrapper {
     inherit stdenv coreutils gnugrep;
+=======
+in (import ../../../build-support/cc-wrapper {
+    inherit stdenv coreutils gnugrep runCommand buildPackages;
+>>>>>>> 754c3f6ba4... cc-wrapper: fix response file parsing on ios-cross
     nativeTools = false;
     nativeLibc = false;
     inherit binutils;
