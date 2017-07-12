@@ -292,7 +292,7 @@ stdenv.mkDerivation {
        abort "Don't know the name of the dynamic linker for this platform.")
     else "";
 
-  inherit dynamicLinker expand-response-params;
+  inherit expand-response-params;
 
   expandResponseParams = expand-response-params; # for substitution in utils.sh
 
