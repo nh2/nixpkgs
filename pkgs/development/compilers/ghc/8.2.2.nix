@@ -157,6 +157,7 @@ stdenv.mkDerivation rec {
 
   # For building runtime libs
   depsBuildTarget = toolsForTarget;
+  depsBuildBuild = [ stdenv.cc ncurses ];
 
   buildInputs = libDeps hostPlatform;
 
