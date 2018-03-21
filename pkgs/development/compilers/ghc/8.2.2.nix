@@ -7,7 +7,7 @@
 
 , libffi, libiconv ? null, ncurses
 
-, useLLVM ? !targetPlatform.isx86 || (targetPlatform != hostPlatform)
+, useLLVM ? !targetPlatform.isx86
 , # LLVM is conceptually a run-time-only depedendency, but for
   # non-x86, we need LLVM to bootstrap later stages, so it becomes a
   # build-time dependency too.
@@ -47,11 +47,11 @@ let
   '' + stdenv.lib.optionalString enableIntegerSimple ''
     INTEGER_LIBRARY = integer-simple
   '' + stdenv.lib.optionalString (targetPlatform != hostPlatform) ''
-    # 8.2.2's quick-cross
+    # 8.2.2's quick-cross, but w/o -fllvm
     SRC_HC_OPTS        = -O0 -H64m
     GhcStage1HcOpts    = -O
-    GhcStage2HcOpts    = -O0 -fllvm
-    GhcLibHcOpts       = -O -fllvm
+    GhcStage2HcOpts    = -O0
+    GhcLibHcOpts       = -O
     BUILD_PROF_LIBS    = NO
     SplitObjs          = NO
     SplitSections      = NO
@@ -61,7 +61,6 @@ let
     BUILD_MAN          = NO
     WITH_TERMINFO      = NO
 
-    INTEGER_LIBRARY      = integer-simple
     Stage1Only           = YES
     DYNAMIC_BY_DEFAULT   = NO
     DYNAMIC_GHC_PROGRAMS = NO
