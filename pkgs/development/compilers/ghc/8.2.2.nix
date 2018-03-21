@@ -175,8 +175,10 @@ stdenv.mkDerivation rec {
 
   # zsh and other shells are smart about `{ghc}` but bash isn't, and doesn't
   # treat that as a unary `{x,y,z,..}` repetition.
+  # Also, some cross configurations aren't treated as such as don't have targetPrefix in libdir;
+  # simply glob to handle whatever the library dir was named.
   postInstall = ''
-    paxmark m $out/lib/${name}/bin/${if targetPlatform != hostPlatform then "ghc" else "{ghc,haddock}"}
+    paxmark m $out/lib/*/bin/${if targetPlatform != hostPlatform then "ghc" else "{ghc,haddock}"}
 
     # Install the bash completion file.
     install -D -m 444 utils/completion/ghc.bash $out/share/bash-completion/completions/${targetPrefix}ghc
