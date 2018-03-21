@@ -47,13 +47,24 @@ let
   '' + stdenv.lib.optionalString enableIntegerSimple ''
     INTEGER_LIBRARY = integer-simple
   '' + stdenv.lib.optionalString (targetPlatform != hostPlatform) ''
-    BuildFlavour = quick-cross
-    Stage1Only = YES
-    WITH_TERMINFO = NO
+    # 8.2.2's quick-cross
+    SRC_HC_OPTS        = -O0 -H64m
+    GhcStage1HcOpts    = -O
+    GhcStage2HcOpts    = -O0 -fllvm
+    GhcLibHcOpts       = -O -fllvm
+    BUILD_PROF_LIBS    = NO
+    SplitObjs          = NO
+    SplitSections      = NO
+    HADDOCK_DOCS       = NO
+    BUILD_SPHINX_HTML  = NO
+    BUILD_SPHINX_PDF   = NO
+    BUILD_MAN          = NO
+    WITH_TERMINFO      = NO
 
-    HADDOCK_DOCS = NO
-    BUILD_SPHINX_HTML = NO
-    BUILD_SPHINX_PDF = NO
+    INTEGER_LIBRARY      = integer-simple
+    Stage1Only           = YES
+    DYNAMIC_BY_DEFAULT   = NO
+    DYNAMIC_GHC_PROGRAMS = NO
   '' + stdenv.lib.optionalString enableRelocatedStaticLibs ''
     GhcLibHcOpts += -fPIC
     GhcRtsHcOpts += -fPIC
@@ -107,7 +118,7 @@ stdenv.mkDerivation rec {
     # GHC is a bit confused on its cross terminology, as these would normally be
     # the *host* tools.
     export CC="${targetCC}/bin/${targetCC.targetPrefix}cc"
-    export CXX="${targetCC}/bin/${targetCC.targetPrefix}cxx"
+    export CXX="${targetCC}/bin/${targetCC.targetPrefix}c++"
     # Use gold to work around https://sourceware.org/bugzilla/show_bug.cgi?id=16177
     export LD="${targetCC.bintools}/bin/${targetCC.bintools.targetPrefix}ld${stdenv.lib.optionalString targetPlatform.isArm ".gold"}"
     export AS="${targetCC.bintools.bintools}/bin/${targetCC.bintools.targetPrefix}as"
