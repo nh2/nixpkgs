@@ -221,7 +221,25 @@ stdenv.mkDerivation rec {
       egrep --quiet '^#!' <(head -n 1 $i) || continue
       sed -i -e '2i export PATH="$PATH:${stdenv.lib.makeBinPath [ targetPackages.stdenv.cc.bintools coreutils ]}"' $i
     done
-  '';
+  '' + stdenv.lib.optionalString (targetPrefix != "" && targetPlatform.isMusl) ''
+      # Not really musl-specific, but let's pretend for now
+
+      for x in "$out/bin/"*; do
+        base=''${x##*/}
+        # skip if already prefixed
+        [[ $base =~ ^${targetPrefix} ]] && continue
+
+        # rewrite symlink source and dest w/targetprefixj
+        if [ -h $x ]; then
+          target=$(readlink $x)
+          ln -s ${targetPrefix}''${target##*/} $out/bin/${targetPrefix}$base
+          rm $x
+        else
+          # if not symlink, just rename to have prefix
+          mv $x $out/bin/${targetPrefix}$base
+        fi
+      done
+    '';
 
   passthru = {
     inherit bootPkgs targetPrefix;
