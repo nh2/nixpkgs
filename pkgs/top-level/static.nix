@@ -31,11 +31,12 @@ self: super: let
     });
   };
 
-  staticAdapters = [ makeStaticLibraries ]
+  # staticAdapters = [ makeStaticLibraries ]
+  staticAdapters = [ ]
 
     # Apple does not provide a static version of libSystem or crt0.o
     # So we can’t build static binaries without extensive hacks.
-    ++ optional (!super.stdenv.hostPlatform.isDarwin) makeStaticBinaries
+    # ++ optional (!super.stdenv.hostPlatform.isDarwin) makeStaticBinaries
 
     ++ optional super.stdenv.hostPlatform.isDarwin makeStaticDarwin
 
@@ -46,7 +47,7 @@ self: super: let
   # Force everything to link statically.
   haskellStaticAdapter = self: super: {
     mkDerivation = attrs: super.mkDerivation (attrs // {
-      enableSharedLibraries = false;
+      # enableSharedLibraries = false;
       enableSharedExecutables = false;
       enableStaticLibraries = true;
     });
