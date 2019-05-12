@@ -65,6 +65,7 @@ in {
   ncurses = super.ncurses.override {
     enableStatic = true;
   };
+  libffi = super.libffi.overrideAttrs (old: { dontDisableStatic = true; });
   libxml2 = super.libxml2.override {
     enableShared = false;
     enableStatic = true;
