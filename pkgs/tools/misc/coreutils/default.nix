@@ -55,6 +55,13 @@ stdenv.mkDerivation rec {
       echo "int main() { return 77; }" > gnulib-tests/test-parse-datetime.c
       echo "int main() { return 77; }" > gnulib-tests/test-getlogin.c
     ''
+    # musl handles invalid times different than glibc, and coreutils has
+    # glibc's result in a test case for comparison, see:
+    #     https://lists.gnu.org/archive/html/coreutils/2019-05/msg00031.html
+    ''
+      substituteInPlace ./tests/misc/date-debug.sh \
+        --replace '2006-04-02 03:30:00' '2006-04-02 01:30:00'
+    ''
   ]);
 
   outputs = [ "out" "info" ];
