@@ -62,6 +62,7 @@ in {
       haskellStaticAdapter;
   };
 
+  curl = super.curl.overrideAttrs (old: { dontDisableStatic = true; });
   ncurses = super.ncurses.override {
     enableStatic = true;
   };
