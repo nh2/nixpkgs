@@ -1,4 +1,5 @@
 { stdenv, lib, buildPackages
+, fetchpatch
 , autoreconfHook, bison, texinfo, fetchurl, perl, xz, libiconv, gmp ? null
 , aclSupport ? stdenv.isLinux, acl ? null
 , attrSupport ? stdenv.isLinux, attr ? null
@@ -25,6 +26,16 @@ stdenv.mkDerivation rec {
   };
 
   patches = optional stdenv.hostPlatform.isCygwin ./coreutils-8.23-4.cygwin.patch
+         # Fix failing test with musl. See https://lists.gnu.org/archive/html/coreutils/2019-05/msg00040.html
+         # ++ optional stdenv.hostPlatform.isMusl (fetchpatch {
+         #    url = https://lists.gnu.org/archive/html/coreutils/2019-05/txtrygo35HvcI.txt;
+         #    name = "0001-tests-avoid-false-positive-in-date-debug-test.patch";
+         #    sha256 = "1zg9m79x1i2nifj4kb0waf9x3i5h6ydkypkjnbsb9rnwis8rqypa";
+         # })
+         ++ optional stdenv.hostPlatform.isMusl (fetchurl {
+            url = https://lists.gnu.org/archive/html/coreutils/2019-05/txtrygo35HvcI.txt;
+            sha256 = "0blllqds5vkk16nahnakh8krqkk34x6i8hzlvkxbvlkkm79r5214";
+         })
          # Fix compilation in musl-cross environments. To be removed in coreutils-8.32.
          ++ optional stdenv.hostPlatform.isMusl ./coreutils-8.31-musl-cross.patch;
 
@@ -54,13 +65,6 @@ stdenv.mkDerivation rec {
     ''
       echo "int main() { return 77; }" > gnulib-tests/test-parse-datetime.c
       echo "int main() { return 77; }" > gnulib-tests/test-getlogin.c
-    ''
-    # musl handles invalid times different than glibc, and coreutils has
-    # glibc's result in a test case for comparison, see:
-    #     https://lists.gnu.org/archive/html/coreutils/2019-05/msg00031.html
-    ''
-      substituteInPlace ./tests/misc/date-debug.sh \
-        --replace '2006-04-02 03:30:00' '2006-04-02 01:30:00'
     ''
   ]);
 
