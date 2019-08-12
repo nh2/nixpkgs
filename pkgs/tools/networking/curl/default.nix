@@ -60,6 +60,10 @@ stdenv.mkDerivation rec {
   preConfigure = ''
     sed -e 's|/usr/bin|/no-such-path|g' -i.bak configure
     rm src/tool_hugehelp.c
+
+    echo
+    echo gssSupport ${builtins.trace "gssSupport ${builtins.toJSON gssSupport}" (builtins.toJSON gssSupport)}
+    echo
   '';
 
   configureFlags = [
