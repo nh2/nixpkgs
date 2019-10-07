@@ -12,11 +12,11 @@ let
 in
 python3Packages.buildPythonApplication rec {
   pname = "meson";
-  version = "0.51.2";
+  version = "0.52.0";
 
   src = python3Packages.fetchPypi {
     inherit pname version;
-    sha256 = "0cqhkjbab1mbvxmbjvyfrbjfkm7bh436svqpjapca36c2k9h1vwr";
+    sha256 = "05d3cqyhf83lbv4xym168vnzcylavq1fizdx74sa1dp8hql599lh";
   };
 
   postFixup = ''
@@ -54,14 +54,6 @@ python3Packages.buildPythonApplication rec {
       src = ./fix-rpath.patch;
       inherit (builtins) storeDir;
     })
-  ] ++ lib.optionals stdenv.isDarwin [
-    # We use custom Clang, which makes Meson think *not Apple*, while still
-    # relying on system linker. When it detects standard Clang, Meson will
-    # pass it `-Wl,-O1` flag but optimizations are not recognized by
-    # Mac linker.
-    # https://github.com/mesonbuild/meson/issues/4784
-    # Should be fixed in 0.52
-    ./fix-objc-linking.patch
   ];
 
   setupHook = ./setup-hook.sh;
