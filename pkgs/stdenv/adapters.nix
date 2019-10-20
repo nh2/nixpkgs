@@ -51,6 +51,20 @@ rec {
     };
 
 
+  # Return a modified stdenv that builds both static libraries and
+  # shared libraries.
+  makeStaticSharedLibraries = stdenv: stdenv //
+    { mkDerivation = args: stdenv.mkDerivation (args // {
+        dontDisableStatic = true;
+        configureFlags = (args.configureFlags or []) ++ [
+          "--enable-static"
+        ];
+        mesonFlags = (args.mesonFlags or []) ++ [ "-Ddefault_library=both" ];
+      });
+      static = true;
+    };
+
+
   # Return a modified stdenv that builds static libraries instead of
   # shared libraries.
   makeStaticLibraries = stdenv: stdenv //

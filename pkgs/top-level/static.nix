@@ -31,12 +31,11 @@ self: super: let
     });
   };
 
-  # staticAdapters = [ makeStaticLibraries propagateBuildInputs ]
-  staticAdapters = [ ]
+  staticAdapters = [ makeStaticLibraries propagateBuildInputs ]
 
     # Apple does not provide a static version of libSystem or crt0.o
     # So we can’t build static binaries without extensive hacks.
-    # ++ optional (!super.stdenv.hostPlatform.isDarwin) makeStaticBinaries
+    ++ optional (!super.stdenv.hostPlatform.isDarwin) makeStaticBinaries
 
     ++ optional super.stdenv.hostPlatform.isDarwin makeStaticDarwin
 
@@ -47,7 +46,7 @@ self: super: let
   # Force everything to link statically.
   haskellStaticAdapter = self: super: {
     mkDerivation = attrs: super.mkDerivation (attrs // {
-      # enableSharedLibraries = false;
+      enableSharedLibraries = false;
       enableSharedExecutables = false;
       enableStaticLibraries = true;
     });
@@ -70,11 +69,6 @@ in {
       haskellStaticAdapter;
   };
 
-  curl = super.curl.overrideAttrs (old: { dontDisableStatic = true; });
-  ncurses = super.ncurses.override {
-    enableStatic = true;
-  };
-  libffi = super.libffi.overrideAttrs (old: { dontDisableStatic = true; });
   libxml2 = super.libxml2.override {
     enableShared = false;
     enableStatic = true;
@@ -82,70 +76,19 @@ in {
   zlib = super.zlib.override {
     static = true;
     shared = false;
-
-    # Don’t use new stdenv zlib because
-    # it doesn’t like the --disable-shared flag
-    stdenv = super.stdenv;
-  };
-  xz = super.xz.override {
-    enableStatic = true;
   };
   busybox = super.busybox.override {
     enableStatic = true;
-  };
-  libiberty = super.libiberty.override {
-    staticBuild = true;
-  };
-  ipmitool = super.ipmitool.override {
-    static = true;
   };
   neon = super.neon.override {
     static = true;
     shared = false;
   };
-  gifsicle = super.gifsicle.override {
-    static = true;
-  };
-  bzip2 = super.bzip2.override {
-    linkStatic = true;
-  };
-  optipng = super.optipng.override {
-    static = true;
-  };
-  openblas = super.openblas.override { enableStatic = true; };
-  openssl = super.openssl.override {
-    static = true;
-
-    # Don’t use new stdenv for openssl because it doesn’t like the
-    # --disable-shared flag
-    stdenv = super.stdenv;
-  };
   boost = super.boost.override {
     enableStatic = true;
     enableShared = false;
   };
-  gmp = super.gmp.override {
-    withStatic = true;
-  };
-  cdo = super.cdo.override {
-    enable_all_static = true;
-  };
-  gsm = super.gsm.override {
-    staticSupport = true;
-  };
-  parted = super.parted.override {
-    enableStatic = true;
-  };
   libiconvReal = super.libiconvReal.override {
-    enableShared = false;
-    enableStatic = true;
-  };
-  perl = super.perl.override {
-    # Don’t use new stdenv zlib because
-    # it doesn’t like the --disable-shared flag
-    stdenv = super.stdenv;
-  };
-  lz4 = super.lz4.override {
     enableShared = false;
     enableStatic = true;
   };

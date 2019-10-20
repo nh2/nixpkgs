@@ -206,13 +206,34 @@ let
     # Prefer appendOverlays if used repeatedly.
     extend = f: self.appendOverlays [f];
 
+    # Packages with static + shared libraries.
+    # Currently uses Musl on Linux (couldn’t get static glibc to work).
+    pkgsStaticShared = nixpkgsFun ({
+      overlays = [ (self': super': {
+        pkgsStatic = super';
+      })] ++ overlays;
+      crossOverlays = [ (import ./static-shared.nix) ];
+    } // lib.optionalAttrs stdenv.hostPlatform.isLinux {
+      crossSystem = {
+        parsed = stdenv.hostPlatform.parsed // {
+          abi = {
+            "gnu" = lib.systems.parse.abis.musl;
+            "gnueabi" = lib.systems.parse.abis.musleabi;
+            "gnueabihf" = lib.systems.parse.abis.musleabihf;
+          }.${stdenv.hostPlatform.parsed.abi.name}
+            or lib.systems.parse.abis.musl;
+        };
+      };
+    });
+
     # Fully static packages.
     # Currently uses Musl on Linux (couldn’t get static glibc to work).
     pkgsStatic = nixpkgsFun ({
       overlays = [ (self': super': {
         pkgsStatic = super';
       })] ++ overlays;
-      crossOverlays = [ (import ./static.nix) ];
+      # static.nix overlay builds upon static-shared.nix overlay.
+      crossOverlays = [ (import ./static-shared.nix) (import ./static.nix) ];
     } // lib.optionalAttrs stdenv.hostPlatform.isLinux {
       crossSystem = {
         parsed = stdenv.hostPlatform.parsed // {
