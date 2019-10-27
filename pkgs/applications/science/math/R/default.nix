@@ -4,6 +4,9 @@
 , curl, Cocoa, Foundation, libobjc, libcxx, tzdata, fetchpatch
 , withRecommendedPackages ? true
 , enableStrictBarrier ? false
+# R as of writing does not support outputting both .so and .a files; it outputs:
+#     --enable-R-static-lib conflicts with --enable-R-shlib and will be ignored
+, static ? false
 , javaSupport ? (!stdenv.hostPlatform.isAarch32 && !stdenv.hostPlatform.isAarch64)
 }:
 
@@ -33,6 +36,10 @@ stdenv.mkDerivation rec {
     substituteInPlace configure --replace "-install_name libR.dylib" "-install_name $out/lib/R/lib/libR.dylib"
   '';
 
+  # `null` only to not trigger mass rebuilds; on next change of this derivation,
+  # simply change to `dontDisableStatic = static`.
+  dontDisableStatic = if static then true else null;
+
   preConfigure = ''
     configureFlagsArray=(
       --disable-lto
@@ -47,7 +54,7 @@ stdenv.mkDerivation rec {
       --with-libtiff
       --with-ICU
       ${stdenv.lib.optionalString enableStrictBarrier "--enable-strict-barrier"}
-      --enable-R-shlib
+      ${if static then "--enable-R-static-lib" else "--enable-R-shlib"}
       AR=$(type -p ar)
       AWK=$(type -p gawk)
       CC=$(type -p cc)
