@@ -148,6 +148,13 @@ stdenv.mkDerivation rec {
   ;
   #TODO: colord?
 
+  # See https://gitlab.gnome.org/GNOME/gtk/issues/2248
+  preConfigure = ''
+    substituteInPlace gtk/meson.build --replace 'shared_library' 'library'
+    substituteInPlace gdk/meson.build --replace 'shared_library' 'library'
+    substituteInPlace libgail-util/meson.build --replace 'shared_library' 'library'
+  '';
+
   doCheck = false; # needs X11
 
   postInstall = optionalString (!stdenv.isDarwin) ''
