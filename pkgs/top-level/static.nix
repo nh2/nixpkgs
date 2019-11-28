@@ -79,6 +79,7 @@ in {
   zlib = super.zlib.override {
     static = true;
     shared = false;
+    splitStaticOutput = false;
 
     # Don’t use new stdenv zlib because
     # it doesn’t like the --disable-shared flag
