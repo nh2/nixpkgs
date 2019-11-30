@@ -1,5 +1,7 @@
 { stdenv, fetchFromGitHub, autoreconfHook, pkgconfig, utilmacros, python
 , libGL, libX11
+, enableEgl ? true
+, enableStatic ? false
 }:
 
 with stdenv.lib;
@@ -24,6 +26,13 @@ stdenv.mkDerivation rec {
     substituteInPlace configure --replace build_glx=no build_glx=yes
     substituteInPlace src/dispatch_common.h --replace "PLATFORM_HAS_GLX 0" "PLATFORM_HAS_GLX 1"
   '';
+
+  configureFlags =
+    optional (!enableEgl) "--enable-egl=no"
+    # `dontDisableStatic` is not enough for this package, it must be enabled explicitly
+    ++ optional enableStatic "--enable-static";
+
+  dontDisableStatic = enableStatic;
 
   patches = [ ./libgl-path.patch ];
 

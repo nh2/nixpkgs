@@ -26,6 +26,19 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [ meson ninja pkgconfig ];
   buildInputs = [ at-spi2-core atk dbus glib libxml2 ];
 
+  # TODO: Remove when https://github.com/GNOME/at-spi2-atk/pull/1 is available
+  postPatch = ''
+    substituteInPlace atk-adaptor/meson.build --replace 'shared_library' 'library'
+  '';
+
+  # For unknown reason, the package does not install `.a` files in subdirectories
+  # to `lib`, but generates `atk-bridge-2.0.pc` containing
+  # `-l` flags fro them, so we copy them file manually.
+  postInstall = ''
+    cp ./atk-adaptor/adaptors/libatk-bridge-adaptors.a $out/lib/libatk-bridge-adaptors.a
+    cp ./droute/libdroute.a $out/lib/libdroute.a
+  '';
+
   doCheck = false; # fails with "No test data file provided"
 
   passthru = {

@@ -77,6 +77,11 @@ stdenv.mkDerivation rec {
 
   mesonFlags = [
     "-Dtests=false"
+    "-Dx11_backend=true"
+  ] ++ optional (!waylandSupport) "-Dwayland_backend=false";
+
+  ninjaFlags = [
+    "--verbose"
   ];
 
   # These are the defines that'd you'd get with --enable-debug=minimum (default).
