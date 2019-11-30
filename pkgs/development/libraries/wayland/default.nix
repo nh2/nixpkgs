@@ -1,6 +1,7 @@
 { lib, stdenv, fetchurl, pkgconfig
 , libffi, libxml2, wayland
 , expat ? null # Build wayland-scanner (currently cannot be disabled as of 1.7.0)
+, enableStatic ? false
 }:
 
 # Require the optional to be enabled until upstream fixes or removes the configure flag
@@ -21,7 +22,12 @@ stdenv.mkDerivation rec {
     "--disable-documentation"
   ] ++ lib.optionals (stdenv.buildPlatform != stdenv.hostPlatform) [
     "--with-host-scanner"
+  ] ++ lib.optionals enableStatic [
+    # `dontDisableStatic` is not enough for this package, it must be enabled explicitly
+    "--enable-static"
   ];
+
+  dontDisableStatic = enableStatic;
 
   nativeBuildInputs = [
     pkgconfig

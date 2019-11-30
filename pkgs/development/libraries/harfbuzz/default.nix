@@ -4,6 +4,7 @@
 , withCoreText ? false
 , withIcu ? false # recommended by upstream as default, but most don't needed and it's big
 , withGraphite2 ? true # it is small and major distros do include it
+, enableStatic ? false
 , python
 }:
 
@@ -37,7 +38,11 @@ stdenv.mkDerivation {
     "--with-graphite2=${if withGraphite2 then "yes" else "no"}"
     "--with-icu=${if withIcu then "yes" else "no"}"
   ]
+    # `dontDisableStatic` is not enough for this package, it must be enabled explicitly
+    ++ stdenv.lib.optional enableStatic "--enable-static"
     ++ stdenv.lib.optional withCoreText "--with-coretext=yes";
+
+  dontDisableStatic = enableStatic;
 
   nativeBuildInputs = [ pkgconfig libintl ];
 

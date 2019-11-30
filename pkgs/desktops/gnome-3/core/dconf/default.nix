@@ -14,6 +14,13 @@ stdenv.mkDerivation rec {
   };
 
   patches = [
+    # build: Update use of link_whole for meson-0.52
+    # TODO: Remove with > 0.34.0
+    (fetchpatch {
+     url = "https://gitlab.gnome.org/GNOME/dconf/commit/cc32667c5d7d9ff95e65cc21f59905d8f9218394.patch";
+     name = "dconf-build-Update-use-of-link_whole-for-meson-0.52.patch";
+     sha256 = "02gfadn34bg818a7vb3crhsiahskiflcvx9l6iqwf1v269q93mr8";
+    })
   ];
 
   postPatch = ''

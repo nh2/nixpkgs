@@ -73,6 +73,41 @@ stdenv.mkDerivation {
       })
     ];
 
+  postPatch = ''
+    substituteInPlace src/glx/meson.build --replace 'shared_library' 'library'
+
+    substituteInPlace src/mesa/drivers/x11/meson.build --replace 'shared_library' 'library'
+
+    substituteInPlace src/gbm/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/amd/vulkan/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/freedreno/vulkan/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/egl/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/d3dadapter9/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/libgl-xlib/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/pipe-loader/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/graw-null/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/xvmc/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/haiku-softpipe/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/vdpau/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/dri/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/opencl/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/omx/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/xa/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/graw-xlib/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/osmesa/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/targets/va/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/gallium/drivers/swr/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/hgl/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/mesa/drivers/dri/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/mesa/drivers/osmesa/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/vulkan/overlay-layer/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/mapi/es2api/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/mapi/shared-glapi/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/mapi/es1api/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/intel/tools/meson.build --replace 'shared_library' 'library'
+    substituteInPlace src/intel/vulkan/meson.build --replace 'shared_library' 'library'
+  '';
+
   outputs = [ "out" "dev" "drivers" "osmesa" ];
 
   # TODO: Figure out how to enable opencl without having a runtime dependency on clang
@@ -87,9 +122,12 @@ stdenv.mkDerivation {
     "-Ddri-search-path=${libglvnd.driverLink}/lib/dri"
 
     "-Dplatforms=${concatStringsSep "," eglPlatforms}"
-    "-Ddri-drivers=${concatStringsSep "," driDrivers}"
-    "-Dgallium-drivers=${concatStringsSep "," galliumDrivers}"
-    "-Dvulkan-drivers=${concatStringsSep "," vulkanDrivers}"
+    # "-Ddri-drivers=${concatStringsSep "," driDrivers}"
+    "-Ddri-drivers="
+    # "-Dgallium-drivers=${concatStringsSep "," galliumDrivers}"
+    "-Dgallium-drivers="
+    # "-Dvulkan-drivers=${concatStringsSep "," vulkanDrivers}"
+    "-Dvulkan-drivers=" # disabled for now because it generates cyclic dependencies with static builds and meson >= 0.52.0
 
     "-Ddri-drivers-path=${placeholder "drivers"}/lib/dri"
     "-Dvdpau-libs-path=${placeholder "drivers"}/lib/vdpau"
@@ -97,10 +135,18 @@ stdenv.mkDerivation {
     "-Domx-libs-path=${placeholder "drivers"}/lib/bellagio"
     "-Dva-libs-path=${placeholder "drivers"}/lib/dri"
     "-Dd3d-drivers-path=${placeholder "drivers"}/lib/d3d"
+
+    # "-Dauto_features=disabled"
+    "-Dglx=xlib"
+    "-Degl=false"
+    "-Dgles1=true"
+    "-Dgles2=true"
+    "-Dshared-glapi=true"
   ] ++ optionals stdenv.isLinux [
-    "-Dglvnd=true"
-    "-Dosmesa=gallium" # used by wine
-    "-Dgallium-nine=true" # Direct3D in Wine
+    # "-Dglvnd=true"
+    "-Dglvnd=false"
+    # "-Dosmesa=gallium" # used by wine
+    # "-Dgallium-nine=true" # Direct3D in Wine
   ];
 
   buildInputs = with xorg; [
@@ -133,16 +179,16 @@ stdenv.mkDerivation {
     mkdir -p $drivers/lib
 
     # move gallium-related stuff to $drivers, so $out doesn't depend on LLVM
-    mv -t $drivers/lib       \
-      $out/lib/libxatracker* \
-      $out/lib/libvulkan_*
+    #mv -t $drivers/lib       \
+    #  $out/lib/libxatracker* \
+    #  $out/lib/libvulkan_*
 
     # Move other drivers to a separate output
-    mv $out/lib/lib*_mesa* $drivers/lib
+    #mv $out/lib/lib*_mesa* $drivers/lib
 
     # move libOSMesa to $osmesa, as it's relatively big
     mkdir -p $osmesa/lib
-    mv -t $osmesa/lib/ $out/lib/libOSMesa*
+    #mv -t $osmesa/lib/ $out/lib/libOSMesa*
 
     # move vendor files
     mv $out/share/ $drivers/
@@ -164,15 +210,16 @@ stdenv.mkDerivation {
   #  for some reason grep -qv '${llvmPackages.llvm}' -R "$out";
   postFixup = optionalString stdenv.isLinux ''
     # set the default search path for DRI drivers; used e.g. by X server
-    substituteInPlace "$dev/lib/pkgconfig/dri.pc" --replace "$drivers" "${libglvnd.driverLink}"
+    #substituteInPlace "$dev/lib/pkgconfig/dri.pc" --replace "$drivers" "${libglvnd.driverLink}"
 
     # remove pkgconfig files for GL/EGL; they are provided by libGL.
-    rm $dev/lib/pkgconfig/{gl,egl}.pc
+    #rm $dev/lib/pkgconfig/{gl,egl}.pc
+    rm $dev/lib/pkgconfig/gl.pc
 
     # Update search path used by pkg-config
-    for pc in $dev/lib/pkgconfig/{d3d,dri,xatracker}.pc; do
-      substituteInPlace "$pc" --replace $out $drivers
-    done
+    #for pc in $dev/lib/pkgconfig/{d3d,dri,xatracker}.pc; do
+    #  substituteInPlace "$pc" --replace $out $drivers
+    #done
 
     # add RPATH so the drivers can find the moved libgallium and libdricore9
     # moved here to avoid problems with stripping patchelfed files
