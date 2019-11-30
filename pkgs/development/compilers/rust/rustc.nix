@@ -1,9 +1,16 @@
 { stdenv, removeReferencesTo, pkgsBuildBuild, pkgsBuildHost, pkgsBuildTarget
 , fetchurl, file, python2
 , llvm_9, darwin, git, cmake, rustPlatform
+, llvmPackages_9
 , pkgconfig, openssl
 , which, libffi
+, musl
+, strace
+, gcc
+# , libunwind
+, useMusl ? true
 , withBundledLLVM ? false
+# , withBundledLLVM ? true
 }:
 
 let
@@ -39,6 +46,22 @@ in stdenv.mkDerivation rec {
   # See: https://github.com/NixOS/nixpkgs/pull/56540#issuecomment-471624656
   stripDebugList = [ "bin" ];
 
+  # NIX_CFLAGS = [
+  #   "-I${musl.dev}/include"
+  # ];
+  # NIX_CXXFLAGS = [
+  #   # "-I${musl.dev}/include"
+
+  #   # Make `<cmath>` find musl's `math.h`.
+  #   # See https://github.com/NixOS/nixpkgs/issues/71195#issuecomment-559907810
+  #   # NOTE: This only works if *nothing* did `-isystem ${musl.dev}/include` before,
+  #   #       otherwise it'll be filtered with `ignoring duplicate directory`!
+  #   # If that is the case, copy-pasting the includes into another directory should
+  #   # be a workaround. But it should really be fixed that we have to do this.
+  #   # Perhaps in nixpkgs we give the `-isystem` headers to e.g.
+  #   # `gcc-8.3.0/include/c++/8.3.0` in the wrong order? THe libc should be last.
+  #   "-idirafter" "${musl.dev}/include"
+  # ];
   NIX_LDFLAGS =
        # when linking stage1 libstd: cc: undefined reference to `__cxa_begin_catch'
        optional (stdenv.isLinux && !withBundledLLVM) "--push-state --as-needed -lstdc++ --pop-state"
@@ -49,7 +72,7 @@ in stdenv.mkDerivation rec {
   RUSTFLAGS = "-Ccodegen-units=10";
 
   # We need rust to build rust. If we don't provide it, configure will try to download it.
-  # Reference: https://github.com/rust-lang/rust/blob/master/src/bootstrap/configure.py
+  # Reference: https://github.com/rust-lang/rust/blob/master/src/bootstrapb/configure.py
   configureFlags = let
     setBuild  = "--set=target.${stdenv.buildPlatform.config}";
     setHost   = "--set=target.${stdenv.hostPlatform.config}";
@@ -64,11 +87,17 @@ in stdenv.mkDerivation rec {
     "--release-channel=stable"
     "--set=build.rustc=${rustPlatform.rust.rustc}/bin/rustc"
     "--set=build.cargo=${rustPlatform.rust.cargo}/bin/cargo"
+    "--set=target.${stdenv.buildPlatform.config}.crt-static=false"
+    "--set=target.${stdenv.buildPlatform.config}.musl-root=${musl}"
     "--enable-rpath"
     "--enable-vendor"
     "--build=${stdenv.buildPlatform.config}"
     "--host=${stdenv.hostPlatform.config}"
     "--target=${stdenv.targetPlatform.config}"
+
+    # "--set=rustc.llvm-libunwind=true"
+    # "--set=llvm.cxxflags=-I${musl.dev}/include"
+    # "--help"
 
     "${setBuild}.cc=${ccForBuild}"
     "${setHost}.cc=${ccForHost}"
@@ -96,7 +125,16 @@ in stdenv.mkDerivation rec {
   postConfigure = ''
     substituteInPlace Makefile \
       --replace 'BOOTSTRAP_ARGS :=' 'BOOTSTRAP_ARGS := --jobs $(NIX_BUILD_CORES)'
+
+    set -x
+    echo ${stdenv.cc.cc.lib}/lib
+    export LD_LIBRARY_PATH="${stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH"
+    ${strace}/bin/strace -fye open,openat ${rustPlatform.rust.cargo}/bin/cargo --help
   '';
+
+  makeFlags = [
+    "V=1"
+  ];
 
   # the rust build system complains that nix alters the checksums
   dontFixLibtool = true;
@@ -121,6 +159,11 @@ in stdenv.mkDerivation rec {
   nativeBuildInputs = [
     file python2 rustPlatform.rust.rustc git cmake
     which libffi removeReferencesTo pkgconfig
+    # Note: Don't try to add a libc like musl here.
+    # It will reorder the include path, resulting in issues like `<cmath>` not finding
+    # `math.h` during the llvm compilation; see:
+    #     https://github.com/NixOS/nixpkgs/issues/71195#issuecomment-559907810
+    llvmPackages_9.libraries.libunwind
   ];
 
   buildInputs = [ openssl ]

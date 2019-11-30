@@ -1,4 +1,4 @@
-{ stdenv, fetchurl, callPackage }:
+{ stdenv, fetchurl, callPackage, musl ? false }:
 
 let
   # Note: the version MUST be one version prior to the version we're
@@ -9,6 +9,7 @@ let
   hashes = {
     i686-unknown-linux-gnu = "41aed8a350e24a0cac1444ed99b3dd24a90bc581dd88cb420c6e547d6b5f57af";
     x86_64-unknown-linux-gnu = "adda26b3f0609dbfbdc2019da4a20101879b9db2134fae322a4e863a069ec221";
+    x86_64-unknown-linux-musl = "0yby46hpsf6mscr8aywxsqjhbm6nvllj7cbdv5k2hcsbsgxn9w0l";
     armv7-unknown-linux-gnueabihf = "8b1bf1680a61a643d6b5c7a3b1a1ce88448652756395e20ba5846739cbd085c4";
     aarch64-unknown-linux-gnu = "06afd6d525326cea95c3aa658aaa8542eab26f44235565bb16913ac9d12b7bda";
     i686-apple-darwin = "cdbf2807774bed350a3af6f41d7f7dd7ceff28777cde310c3ba90033188eb2f8";
@@ -19,7 +20,8 @@ let
     if stdenv.hostPlatform.system == "i686-linux"
     then "i686-unknown-linux-gnu"
     else if stdenv.hostPlatform.system == "x86_64-linux"
-    then "x86_64-unknown-linux-gnu"
+    # TODO: Can we use isMusl here?
+    then (if musl then "x86_64-unknown-linux-musl" else "x86_64-unknown-linux-gnu")
     else if stdenv.hostPlatform.system == "armv7l-linux"
     then "armv7-unknown-linux-gnueabihf"
     else if stdenv.hostPlatform.system == "aarch64-linux"
