@@ -15,12 +15,16 @@ buildPythonPackage rec {
     # Without this, tests fail with a unicode error on Python < 3
     # (checked with 2.7) if glibc is used, see:
     # https://github.com/NixOS/nixpkgs/issues/74904
-    ++ lib.optionals (!isPy3k && stdenv.hostPlatform.libc == "glibc") [ glibcLocales ];
+    ;
 
   doCheck = !stdenv.isDarwin
     # Test failure on musl when Python < 3 (checked with 2.7) is used:
     # https://github.com/NixOS/nixpkgs/issues/74904 (like above).
     && !(stdenv.hostPlatform.isMusl && !isPy3k);
+
+  preCheck = ''
+    export LC_ALL="C.UTF-8"
+  '';
 
   meta = with lib; {
     homepage = http://babel.edgewall.org;
