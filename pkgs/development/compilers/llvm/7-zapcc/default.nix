@@ -5,7 +5,9 @@
 }:
 
 let
-  release_version = "7.1.0";
+  # IMPORTANT:
+  # Match this with the Zapcc LLVM version provided by the `src` in `default.nix`!
+  release_version = "7.0.0";
   version = release_version; # differentiating these is important for rc's
 
   fetch = name: sha256: fetchurl {
@@ -55,7 +57,14 @@ let
     clang = if stdenv.cc.isGNU then tools.libstdcxxClang else tools.libcxxClang;
 
     libstdcxxClang = wrapCCWith rec {
-      cc = tools.clang-unwrapped;
+      # IMPORANT: Zapcc is packaged from a fork of the LLVM monorepo,
+      #           containing LLVM, clang, and all other tools, while normal
+      #           nixpkgs LLVM and clang are packaged separately from tarballs.
+      #           This is why the unwrapped zapcc binaries are directly in the
+      #           `llvm` derivation, and we don't really use or have tested any
+      #           of the other derivation (they are only here because they were
+      #           copy-pasted).
+      cc = tools.llvm;
       extraPackages = [
         libstdcxxHook
         targetLlvmLibraries.compiler-rt
@@ -64,7 +73,7 @@ let
     };
 
     libcxxClang = wrapCCWith rec {
-      cc = tools.clang-unwrapped;
+      cc = tools.llvm;
       libcxx = targetLlvmLibraries.libcxx;
       extraPackages = [
         targetLlvmLibraries.libcxx

@@ -7827,6 +7827,8 @@ in
   clang_39 = llvmPackages_39.clang;
   clang_35 = wrapCC llvmPackages_35.clang;
 
+  clang_7_zapcc = llvmPackages_7_zapcc.clang;
+
   clang-tools = callPackage ../development/tools/clang-tools {
     llvmPackages = llvmPackages_latest;
   };
@@ -7835,6 +7837,7 @@ in
 
   #Use this instead of stdenv to build with clang
   clangStdenv = if stdenv.cc.isClang then stdenv else lowPrio llvmPackages.stdenv;
+  zapccStdenv = if (stdenv.cc.isZapcc or false) then stdenv else lowPrio llvmPackages_7_zapcc.stdenv;
   clang-sierraHack-stdenv = overrideCC stdenv buildPackages.clang-sierraHack;
   libcxxStdenv = if stdenv.isDarwin then stdenv else lowPrio llvmPackages.libcxxStdenv;
 
@@ -8546,6 +8549,8 @@ in
   llvm_39 = llvmPackages_39.llvm;
   llvm_35 = llvmPackages_35.llvm;
 
+  llvm_7_zapcc = llvmPackages_7_zapcc.llvm;
+
   llvmPackages = recurseIntoAttrs llvmPackages_7;
 
   llvmPackages_35 = callPackage ../development/compilers/llvm/3.5 ({
@@ -8613,6 +8618,14 @@ in
   });
 
   llvmPackages_latest = llvmPackages_9;
+
+  llvmPackages_7_zapcc = callPackage ../development/compilers/llvm/7-zapcc ({
+    inherit (stdenvAdapters) overrideCC;
+    buildLlvmTools = buildPackages.llvmPackages_7_zapcc.tools;
+    targetLlvmLibraries = targetPackages.llvmPackages_7_zapcc.libraries;
+  } // stdenv.lib.optionalAttrs (stdenv.hostPlatform.isi686 && buildPackages.stdenv.cc.isGNU) {
+    stdenv = gcc6Stdenv; # with gcc-7: undefined reference to `__divmoddi4'
+  });
 
   lorri = callPackage ../tools/misc/lorri {
     inherit (darwin.apple_sdk.frameworks) CoreServices Security;

@@ -1,6 +1,8 @@
 { stdenv
 , fetch
 , fetchpatch
+, fetchFromGitHub
+, gcc
 , cmake
 , python3
 , libffi
@@ -30,20 +32,17 @@ let
     imap (i: _: concatStringsSep "." (take i parts)) parts;
 
 in stdenv.mkDerivation ({
-  pname = "llvm";
+  pname = "zapcc-llvm";
   inherit version;
 
-  src = fetch "llvm" "0r1p5didv4rkgxyvbkyz671xddg6i3dxvbpsi1xxipkla0l9pk0v";
+  src = fetchFromGitHub rec {
+    owner = "yrnkrn";
+    repo = "zapcc";
+    rev = "51132ba4029e09aa2faa400b7ca09c5b9f618877"; # last llvm sync is with llvm 7, commit "Merge LLVM 325000"
+    sha256 = "0jzan8cl21ybqkjdpd3w9v4f63w6p3ijxylk86fg8y4lfpw4wfqy";
+    name = "zapcc-source-${rev}";
+  };
   polly_src = fetch "polly" "16qkns4ab4x0azrvhy4j7cncbyb2rrbdrqj87zphvqxm5pvm8m1h";
-
-  unpackPhase = ''
-    unpackFile $src
-    mv llvm-${version}* llvm
-    sourceRoot=$PWD/llvm
-  '' + optionalString enablePolly ''
-    unpackFile $polly_src
-    mv polly-* $sourceRoot/tools/polly
-  '';
 
   outputs = [ "out" "python" ]
     ++ optional enableSharedLibraries "lib";
@@ -100,24 +99,44 @@ in stdenv.mkDerivation ({
     rm test/ExecutionEngine/frem.ll
   '' + ''
     patchShebangs test/BugPoint/compile-custom.ll.py
+  '' +
+  # clang patches taken from `clang/default.nix`, with `tools/clang/` prefix added:
+  ''
+    sed -i -e 's/DriverArgs.hasArg(options::OPT_nostdlibinc)/true/' \
+           -e 's/Args.hasArg(options::OPT_nostdlibinc)/true/' \
+           tools/clang/lib/Driver/ToolChains/*.cpp
+  '' + stdenv.lib.optionalString stdenv.hostPlatform.isMusl ''
+    sed -i -e 's/lgcc_s/lgcc_eh/' tools/clang/lib/Driver/ToolChains/*.cpp
+  '' +
+  # Manual application of clang `purity.patch` to `tools/clang/` subdir:
+  ''
+    patch -p1 --directory=tools/clang/ < ${./clang/purity.patch}
   '';
 
   # hacky fix: created binaries need to be run before installation
   preBuild = ''
     mkdir -p $out/
     ln -sv $PWD/lib $out
+  '' +
+  # nh2: Hack: There is a bug in the build system as part of which
+  # `llvm/IR/Attributes.gen` can racily be built too late, and then includes
+  # fail. Build it first to work around that (`intrinsics_gen` builds it).
+  ''
+    make -j $NIX_BUILD_CORES -l $NIX_BUILD_CORES intrinsics_gen
   '';
 
   cmakeFlags = with stdenv; [
     "-DCMAKE_BUILD_TYPE=${if debugVersion then "Debug" else "Release"}"
     "-DLLVM_INSTALL_UTILS=ON"  # Needed by rustc
-    "-DLLVM_BUILD_TESTS=ON"
+    "-DLLVM_BUILD_TESTS=OFF" # nh2: some tests may fail, or at least I haven't intestigated them yet
     "-DLLVM_ENABLE_FFI=ON"
     "-DLLVM_ENABLE_RTTI=ON"
     "-DLLVM_HOST_TRIPLE=${stdenv.hostPlatform.config}"
     "-DLLVM_DEFAULT_TARGET_TRIPLE=${stdenv.hostPlatform.config}"
     "-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=WebAssembly"
     "-DLLVM_ENABLE_DUMP=ON"
+
+    "-DLLVM_ENABLE_WARNINGS=OFF" # from zapcc README
   ] ++ optionals enableSharedLibraries [
     "-DLLVM_LINK_LLVM_DYLIB=ON"
   ] ++ optionals enableManpages [
@@ -134,7 +153,11 @@ in stdenv.mkDerivation ({
   ] ++ optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
     "-DCMAKE_CROSSCOMPILING=True"
     "-DLLVM_TABLEGEN=${buildPackages.llvm_7}/bin/llvm-tblgen"
-  ];
+  ]
+  # taken from clang/default.nix
+  ++ [ "-DCMAKE_CXX_FLAGS=-std=c++11" ]
+  ++ stdenv.lib.optional stdenv.isLinux "-DGCC_INSTALL_PREFIX=${gcc}"
+  ++ stdenv.lib.optional (stdenv.cc.libc != null) "-DC_INCLUDE_DIRS=${stdenv.cc.libc}/include";
 
   postBuild = ''
     rm -fR $out
@@ -162,11 +185,19 @@ in stdenv.mkDerivation ({
     '') versionSuffixes}
   '';
 
-  doCheck = stdenv.isLinux && (!stdenv.isx86_32);
+  # doCheck = stdenv.isLinux && (!stdenv.isx86_32);
+  doCheck = false; # nh2: some tests may fail, or at least I haven't intestigated them yet
 
   checkTarget = "check-all";
 
   enableParallelBuilding = true;
+
+  # taken from clang/default.nix
+  passthru = {
+    isClang = true;
+  } // stdenv.lib.optionalAttrs stdenv.isLinux {
+    inherit gcc;
+  };
 
   meta = {
     description = "Collection of modular and reusable compiler and toolchain technologies";
