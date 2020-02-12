@@ -12,6 +12,7 @@
 , propagateDoc ? cc != null && cc ? man
 , extraPackages ? [], extraBuildCommands ? ""
 , isGNU ? false, isClang ? cc.isClang or false, gnugrep ? null
+, isZapcc ? cc.isZapcc or false
 , buildPackages ? {}
 , libcxx ? null
 }:
@@ -113,7 +114,7 @@ stdenv.mkDerivation {
     # Binutils, and Apple's "cctools"; "bintools" as an attempt to find an
     # unused middle-ground name that evokes both.
     inherit bintools;
-    inherit libc nativeTools nativeLibc nativePrefix isGNU isClang default_cxx_stdlib_compile;
+    inherit libc nativeTools nativeLibc nativePrefix isGNU isClang isZapcc default_cxx_stdlib_compile;
 
     emacsBufferSetup = pkgs: ''
       ; We should handle propagation here too
@@ -195,6 +196,18 @@ stdenv.mkDerivation {
       if [ -e $ccPath/cpp ]; then
         wrap ${targetPrefix}cpp $wrapper $ccPath/cpp
       fi
+    ''
+
+    + optionalString isZapcc ''
+      wrap ${targetPrefix}zapcc $wrapper $ccPath/zapcc
+      rm $out/bin/${targetPrefix}cc # from above
+      ln -s ${targetPrefix}zapcc $out/bin/${targetPrefix}cc
+      export named_cc=${targetPrefix}zapcc
+      export named_cxx=${targetPrefix}zapcc++
+
+      wrap ${targetPrefix}zapcc++ $wrapper $ccPath/zapcc++
+      rm $out/bin/${targetPrefix}c++ # from above
+      ln -s ${targetPrefix}zapcc++ $out/bin/${targetPrefix}c++
     ''
 
     + optionalString cc.langFortran or false ''
