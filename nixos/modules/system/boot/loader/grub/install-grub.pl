@@ -570,7 +570,7 @@ if (($requireNewInstall != 0) && ($efiTarget eq "no" || $efiTarget eq "both")) {
     foreach my $dev (@deviceTargets) {
         next if $dev eq "nodev";
         print STDERR "installing the GRUB $grubVersion boot loader on $dev...\n";
-        my @command = ("$grub/sbin/grub-install", "--recheck", "--modules=ata mdraid1x lvm ext2 nativedisk", "--root-directory=$tmpDir", Cwd::abs_path($dev));
+        my @command = ("$grub/sbin/grub-install", "--recheck", "--modules=pata mdraid1x lvm ext2 nativedisk", "--root-directory=$tmpDir", Cwd::abs_path($dev));
         if ($forceInstall eq "true") {
             push @command, "--force";
         }
