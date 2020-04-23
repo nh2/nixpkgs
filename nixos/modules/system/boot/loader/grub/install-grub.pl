@@ -8,6 +8,7 @@ use File::stat;
 use File::Copy;
 use File::Slurp;
 use File::Temp;
+use JSON;
 require List::Compare;
 use POSIX;
 use Cwd;
@@ -567,9 +568,12 @@ struct(GrubState => {
     efi => '$',
     devices => '$',
     efiMountPoint => '$',
+    extraGrubInstallArgs => '$',
 });
+# If you add something to the state file, only add it to the end
+# because it is read line-by-line.
 sub readGrubState {
-    my $defaultGrubState = GrubState->new(name => "", version => "", efi => "", devices => "", efiMountPoint => "" );
+    my $defaultGrubState = GrubState->new(name => "", version => "", efi => "", devices => "", efiMountPoint => "", extraGrubInstallArgs => "[]" );
     open FILE, "<$bootPath/grub/state" or return $defaultGrubState;
     local $/ = "\n";
     my $name = <FILE>;
@@ -582,16 +586,26 @@ sub readGrubState {
     chomp($devices);
     my $efiMountPoint = <FILE>;
     chomp($efiMountPoint);
+    my $extraGrubInstallArgs = <FILE>;
+    # For historical reasons we do not check the values above for un-definedness
+    # (that is, when the state file has too few lines and EOF is reached),
+    # because the above come from the first version of this logic and are thus
+    # guaranteed to be present.
+    $extraGrubInstallArgs = defined $extraGrubInstallArgs ? $extraGrubInstallArgs : '[]'; # empty JSON array
+    chomp($extraGrubInstallArgs);
     close FILE;
-    my $grubState = GrubState->new(name => $name, version => $version, efi => $efi, devices => $devices, efiMountPoint => $efiMountPoint );
+    my $grubState = GrubState->new(name => $name, version => $version, efi => $efi, devices => $devices, efiMountPoint => $efiMountPoint, extraGrubInstallArgs => $extraGrubInstallArgs );
     return $grubState
 }
 
 my @deviceTargets = getList('devices');
 my $prevGrubState = readGrubState();
 my @prevDeviceTargets = split/,/, $prevGrubState->devices;
+my @extraGrubInstallArgs = getList('extraGrubInstallArgs');
+my @prevExtraGrubInstallArgs = @{decode_json($prevGrubState->extraGrubInstallArgs)};
 
 my $devicesDiffer = scalar (List::Compare->new( '-u', '-a', \@deviceTargets, \@prevDeviceTargets)->get_symmetric_difference());
+my $extraGrubInstallArgsDiffer = scalar (List::Compare->new( '-u', '-a', \@extraGrubInstallArgs, \@prevExtraGrubInstallArgs)->get_symmetric_difference());
 my $nameDiffer = get("fullName") ne $prevGrubState->name;
 my $versionDiffer = get("fullVersion") ne $prevGrubState->version;
 my $efiDiffer = $efiTarget ne $prevGrubState->efi;
@@ -600,7 +614,7 @@ if (($ENV{'NIXOS_INSTALL_GRUB'} // "") eq "1") {
     warn "NIXOS_INSTALL_GRUB env var deprecated, use NIXOS_INSTALL_BOOTLOADER";
     $ENV{'NIXOS_INSTALL_BOOTLOADER'} = "1";
 }
-my $requireNewInstall = $devicesDiffer || $nameDiffer || $versionDiffer || $efiDiffer || $efiMountPointDiffer || (($ENV{'NIXOS_INSTALL_BOOTLOADER'} // "") eq "1");
+my $requireNewInstall = $devicesDiffer || $extraGrubInstallArgsDiffer || $nameDiffer || $versionDiffer || $efiDiffer || $efiMountPointDiffer || (($ENV{'NIXOS_INSTALL_BOOTLOADER'} // "") eq "1");
 
 # install a symlink so that grub can detect the boot drive
 my $tmpDir = File::Temp::tempdir(CLEANUP => 1) or die "Failed to create temporary space";
@@ -611,7 +625,7 @@ if (($requireNewInstall != 0) && ($efiTarget eq "no" || $efiTarget eq "both")) {
     foreach my $dev (@deviceTargets) {
         next if $dev eq "nodev";
         print STDERR "installing the GRUB $grubVersion boot loader on $dev...\n";
-        my @command = ("$grub/sbin/grub-install", "--recheck", "--root-directory=$tmpDir", Cwd::abs_path($dev));
+        my @command = ("$grub/sbin/grub-install", "--recheck", "--root-directory=$tmpDir", Cwd::abs_path($dev), @extraGrubInstallArgs);
         if ($forceInstall eq "true") {
             push @command, "--force";
         }
@@ -626,7 +640,7 @@ if (($requireNewInstall != 0) && ($efiTarget eq "no" || $efiTarget eq "both")) {
 # install EFI GRUB
 if (($requireNewInstall != 0) && ($efiTarget eq "only" || $efiTarget eq "both")) {
     print STDERR "installing the GRUB $grubVersion EFI boot loader into $efiSysMountPoint...\n";
-    my @command = ("$grubEfi/sbin/grub-install", "--recheck", "--target=$grubTargetEfi", "--boot-directory=$bootPath", "--efi-directory=$efiSysMountPoint");
+    my @command = ("$grubEfi/sbin/grub-install", "--recheck", "--target=$grubTargetEfi", "--boot-directory=$bootPath", "--efi-directory=$efiSysMountPoint", @extraGrubInstallArgs);
     if ($forceInstall eq "true") {
         push @command, "--force";
     }
@@ -649,5 +663,6 @@ if ($requireNewInstall != 0) {
     print FILE $efiTarget, "\n" or die;
     print FILE join( ",", @deviceTargets ), "\n" or die;
     print FILE $efiSysMountPoint, "\n" or die;
+    print FILE encode_json(\@extraGrubInstallArgs), "\n" or die;
     close FILE or die;
 }
