@@ -560,6 +560,8 @@ in {
 
   catalogue = callPackage ../development/python-modules/catalogue { };
 
+  cbeams = callPackage ../misc/cbeams { };
+
   cdecimal = callPackage ../development/python-modules/cdecimal { };
 
   cfn-flip = callPackage ../development/python-modules/cfn-flip { };
@@ -1068,6 +1070,8 @@ in {
   pure-python-adb-homeassistant = callPackage ../development/python-modules/pure-python-adb-homeassistant { };
 
   purl = callPackage ../development/python-modules/purl { };
+
+  pyclipper = callPackage ../development/python-modules/pyclipper { };
 
   pymystem3 = callPackage ../development/python-modules/pymystem3 { };
 

@@ -585,6 +585,12 @@ in
     stdenv = clangStdenv;
   };
 
+  aflplusplus = callPackage ../tools/security/aflplusplus {
+    stdenv = clangStdenv;
+    python = python37;
+    wine = null;
+  };
+
   libdislocator = callPackage ../tools/security/afl/libdislocator.nix { };
 
   afpfs-ng = callPackage ../tools/filesystems/afpfs-ng { };
@@ -919,6 +925,8 @@ in
   ezstream = callPackage ../tools/audio/ezstream { };
 
   libfx2 = with python3Packages; toPythonApplication fx2;
+
+  fitnesstrax = callPackage ../applications/misc/fitnesstrax/default.nix { };
 
   fxlinuxprintutil = callPackage ../tools/misc/fxlinuxprintutil { };
 
@@ -3991,6 +3999,8 @@ in
 
   httplab = callPackage ../tools/networking/httplab { };
 
+  lucky-cli = callPackage ../development/web/lucky-cli { };
+
   partclone = callPackage ../tools/backup/partclone { };
 
   partimage = callPackage ../tools/backup/partimage { };
@@ -6532,6 +6542,8 @@ in
 
   shocco = callPackage ../tools/text/shocco { };
 
+  shopify-themekit = callPackage ../development/web/shopify-themekit { };
+
   shorewall = callPackage ../tools/networking/shorewall { };
 
   shotwell = callPackage ../applications/graphics/shotwell { };
@@ -8114,9 +8126,7 @@ in
     crystal
     crystal2nix;
 
-  icr = callPackage ../development/tools/icr {
-    openssl = openssl_1_0_2;
-  };
+  icr = callPackage ../development/tools/icr { };
 
   scry = callPackage ../development/tools/scry {};
 
@@ -8407,6 +8417,28 @@ in
     inherit (gnome2) libart_lgpl;
   });
 
+  gnat = gnat9;
+
+  gnat6 = wrapCC (gcc6.cc.override {
+    name = "gnat";
+    langC = true;
+    langCC = false;
+    langAda = true;
+    profiledCompiler = false;
+    inherit gnatboot;
+  });
+
+  gnat9 = wrapCC (gcc9.cc.override {
+    name = "gnat";
+    langC = true;
+    langCC = false;
+    langAda = true;
+    profiledCompiler = false;
+    gnatboot = gnat6;
+  });
+
+  gnatboot = wrapCC (callPackage ../development/compilers/gnatboot { });
+
   gnu-smalltalk = callPackage ../development/compilers/gnu-smalltalk { };
 
   gccgo = gccgo6;
@@ -8417,6 +8449,16 @@ in
     langGo = true;
     profiledCompiler = false;
   });
+
+  ghdl = ghdl-mcode;
+
+  ghdl-mcode = callPackage ../development/compilers/ghdl {
+    backend = "mcode";
+  };
+
+  ghdl-llvm = callPackage ../development/compilers/ghdl {
+    backend = "llvm";
+  };
 
   gcl = callPackage ../development/compilers/gcl {
     gmp = gmp4;
@@ -12665,9 +12707,7 @@ in
 
   libfakekey = callPackage ../development/libraries/libfakekey { };
 
-  libfido2 = callPackage ../development/libraries/libfido2 {
-    inherit (darwin.apple_sdk.frameworks) IOKit;
-  };
+  libfido2 = callPackage ../development/libraries/libfido2 { };
 
   libfilezilla = callPackage ../development/libraries/libfilezilla { };
 
@@ -13012,6 +13052,7 @@ in
   libjcat = callPackage ../development/libraries/libjcat { };
 
   libjpeg_original = callPackage ../development/libraries/libjpeg { };
+  # also known as libturbojpeg
   libjpeg_turbo = callPackage ../development/libraries/libjpeg-turbo { };
   libjpeg_drop = callPackage ../development/libraries/libjpeg-drop { };
   libjpeg = libjpeg_turbo;
@@ -22235,6 +22276,8 @@ in
   uefitoolPackages = recurseIntoAttrs (callPackage ../tools/system/uefitool/variants.nix {});
   uefitool = uefitoolPackages.new-engine;
 
+  ungoogled-chromium = callPackage ../applications/networking/browsers/ungoogled-chromium (config.chromium or {});
+
   unigine-valley = callPackage ../applications/graphics/unigine-valley { };
 
   unison = callPackage ../applications/networking/sync/unison {
@@ -26462,4 +26505,5 @@ in
 
   jitsi-meet-electron = callPackage ../applications/networking/instant-messengers/jitsi-meet-electron { };
 
+  zenstates = callPackage ../os-specific/linux/zenstates {};
 }
