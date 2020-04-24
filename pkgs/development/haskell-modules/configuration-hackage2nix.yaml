@@ -3407,6 +3407,7 @@ broken-packages:
   - cal3d
   - cal3d-examples
   - cal3d-opengl
+  - calamity
   - calc
   - calculator
   - caldims
@@ -7493,6 +7494,9 @@ broken-packages:
   - mp
   - mpdmate
   - mpi-hs
+  - mpi-hs-binary
+  - mpi-hs-cereal
+  - mpi-hs-store
   - mpppc
   - mpretty
   - mpris
