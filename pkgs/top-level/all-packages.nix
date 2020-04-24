@@ -8605,8 +8605,6 @@ in
 
   gogetdoc = callPackage ../development/tools/gogetdoc { };
 
-  gometalinter = callPackage ../development/tools/gometalinter { };
-
   gox = callPackage ../development/tools/gox { };
 
   gprolog = callPackage ../development/compilers/gprolog { };
@@ -12301,8 +12299,8 @@ in
   isocodes = callPackage ../development/libraries/iso-codes { };
 
   ispc = callPackage ../development/compilers/ispc {
-    llvmPackages = llvmPackages_6;
-    stdenv = llvmPackages_6.stdenv;
+    stdenv = llvmPackages_10.stdenv;
+    llvmPackages = llvmPackages_10;
   };
 
   isso = callPackage ../servers/isso { };
@@ -17053,7 +17051,7 @@ in
     };
     kernelPatches = kernel.kernelPatches ++ [
       kernelPatches.tag_hardened
-      kernelPatches.hardened.${kernel.version}
+      kernelPatches.hardened.${kernel.meta.branch}
     ];
     modDirVersionArg = kernel.modDirVersion + "-hardened";
   });
@@ -17270,6 +17268,8 @@ in
   gomodifytags = callPackage ../development/tools/gomodifytags { };
 
   go-langserver = callPackage ../development/tools/go-langserver { };
+
+  gopls = callPackage ../development/tools/gopls { };
 
   gotests = callPackage ../development/tools/gotests { };
 
@@ -19944,6 +19944,8 @@ in
 
   leftwm = callPackage ../applications/window-managers/leftwm { };
 
+  musikcube = callPackage ../applications/audio/musikcube {};
+
   pinboard-notes-backup = haskell.lib.overrideCabal
     (haskell.lib.generateOptparseApplicativeCompletion "pnbackup"
       haskellPackages.pinboard-notes-backup)
@@ -20210,7 +20212,13 @@ in
   k3d = callPackage ../applications/graphics/k3d {
     inherit (pkgs.gnome2) gtkglext;
     stdenv = gcc6Stdenv;
-    boost = boost155.override { enablePython = true; };
+    boost = boost155.override {
+      enablePython = true;
+      stdenv = gcc6Stdenv;
+      buildPackages = buildPackages // {
+        stdenv = gcc6Stdenv;
+      };
+    };
   };
 
   k3s = callPackage ../applications/networking/cluster/k3s {};
