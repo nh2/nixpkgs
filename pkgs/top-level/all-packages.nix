@@ -1756,6 +1756,8 @@ in
 
   fsmon = callPackage ../tools/misc/fsmon { };
 
+  fsnoop = callPackage ../tools/misc/fsnoop { };
+
   fsql = callPackage ../tools/misc/fsql { };
 
   fop = callPackage ../tools/typesetting/fop { };
