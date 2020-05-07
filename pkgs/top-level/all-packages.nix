@@ -19272,6 +19272,8 @@ in
 
   fractal = callPackage ../applications/networking/instant-messengers/fractal { };
 
+  frappebooks = callPackage ../applications/office/frappebooks { };
+
   freecad = qt5.callPackage ../applications/graphics/freecad { mpi = openmpi; };
 
   freemind = callPackage ../applications/misc/freemind { };
