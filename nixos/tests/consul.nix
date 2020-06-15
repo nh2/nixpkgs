@@ -97,6 +97,9 @@ in {
     client2 = client 1;
   };
 
+  # Note that we're using `wait_until_succeeds()` instead of `succeed()`
+  # for all Consul actions, because it may choose to fail over leadership to
+  # another node at any time, returning `leadership lost while committing`.
   testScript = ''
     servers = [server1, server2, server3]
     machines = [server1, server2, server3, client1, client2]
@@ -107,8 +110,8 @@ in {
     for m in machines:
         m.wait_until_succeeds("[ $(consul members | grep -o alive | wc -l) == 5 ]")
 
-    client1.succeed("consul kv put testkey 42")
-    client2.succeed("[ $(consul kv get testkey) == 42 ]")
+    client1.wait_until_succeeds("consul kv put testkey 42")
+    client2.wait_until_succeeds("[ $(consul kv get testkey) == 42 ]")
 
     # Test that the cluster can tolearate failures of any single server:
     for server in servers:
@@ -120,9 +123,9 @@ in {
         client2.wait_until_succeeds("consul kv get -recurse")
 
         # Do some consul actions while one server is down.
-        client1.succeed("consul kv put testkey 43")
-        client2.succeed("[ $(consul kv get testkey) == 43 ]")
-        client2.succeed("consul kv delete testkey")
+        client1.wait_until_succeeds("consul kv put testkey 43")
+        client2.wait_until_succeeds("[ $(consul kv get testkey) == 43 ]")
+        client2.wait_until_succeeds("consul kv delete testkey")
 
         # Restart crashed machine.
         server.start()
@@ -136,8 +139,8 @@ in {
         client2.wait_until_succeeds("consul kv get -recurse")
 
         # Do some consul actions with server back up.
-        client1.succeed("consul kv put testkey 44")
-        client2.succeed("[ $(consul kv get testkey) == 44 ]")
-        client2.succeed("consul kv delete testkey")
+        client1.wait_until_succeeds("consul kv put testkey 44")
+        client2.wait_until_succeeds("[ $(consul kv get testkey) == 44 ]")
+        client2.wait_until_succeeds("consul kv delete testkey")
   '';
 })
