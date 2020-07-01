@@ -258,6 +258,9 @@ in
           GRUB source code
           </link>
           for which disk modules are available.
+
+          The list elements are passed directly as <literal>argv</literal>
+          arguments to the <literal>grub-install</literal> program, in order.
         '';
       };
 
