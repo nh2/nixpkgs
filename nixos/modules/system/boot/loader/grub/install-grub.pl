@@ -568,12 +568,12 @@ struct(GrubState => {
     efi => '$',
     devices => '$',
     efiMountPoint => '$',
-    extraGrubInstallArgs => '$',
+    extraGrubInstallArgs => '@',
 });
 # If you add something to the state file, only add it to the end
 # because it is read line-by-line.
 sub readGrubState {
-    my $defaultGrubState = GrubState->new(name => "", version => "", efi => "", devices => "", efiMountPoint => "", extraGrubInstallArgs => "[]" );
+    my $defaultGrubState = GrubState->new(name => "", version => "", efi => "", devices => "", efiMountPoint => "", extraGrubInstallArgs => () );
     open FILE, "<$bootPath/grub/state" or return $defaultGrubState;
     local $/ = "\n";
     my $name = <FILE>;
@@ -586,15 +586,23 @@ sub readGrubState {
     chomp($devices);
     my $efiMountPoint = <FILE>;
     chomp($efiMountPoint);
-    my $extraGrubInstallArgs = <FILE>;
+    # Historically, arguments in the state file were one per each line, but that
+    # gets really messy when newlines are involved, structured arguments
+    # like lists are needed (they have to have a separator encoding), or even worse,
+    # when we need to remove a setting in the future. Thus, the 6th line is a JSON
+    # object that can store structured data, with named keys, and all new state
+    # should go in there.
+    my $jsonStateLine = <FILE>;
     # For historical reasons we do not check the values above for un-definedness
     # (that is, when the state file has too few lines and EOF is reached),
     # because the above come from the first version of this logic and are thus
     # guaranteed to be present.
-    $extraGrubInstallArgs = defined $extraGrubInstallArgs ? $extraGrubInstallArgs : '[]'; # empty JSON array
-    chomp($extraGrubInstallArgs);
+    $jsonStateLine = defined $jsonStateLine ? $jsonStateLine : '{}'; # empty JSON object
+    chomp($jsonStateLine);
+    my %jsonState = %{decode_json($jsonStateLine)};
+    my @extraGrubInstallArgs = @{$jsonState{'extraGrubInstallArgs'}};
     close FILE;
-    my $grubState = GrubState->new(name => $name, version => $version, efi => $efi, devices => $devices, efiMountPoint => $efiMountPoint, extraGrubInstallArgs => $extraGrubInstallArgs );
+    my $grubState = GrubState->new(name => $name, version => $version, efi => $efi, devices => $devices, efiMountPoint => $efiMountPoint, extraGrubInstallArgs => @extraGrubInstallArgs );
     return $grubState
 }
 
@@ -602,7 +610,7 @@ my @deviceTargets = getList('devices');
 my $prevGrubState = readGrubState();
 my @prevDeviceTargets = split/,/, $prevGrubState->devices;
 my @extraGrubInstallArgs = getList('extraGrubInstallArgs');
-my @prevExtraGrubInstallArgs = @{decode_json($prevGrubState->extraGrubInstallArgs)};
+my @prevExtraGrubInstallArgs = $prevGrubState->extraGrubInstallArgs;
 
 my $devicesDiffer = scalar (List::Compare->new( '-u', '-a', \@deviceTargets, \@prevDeviceTargets)->get_symmetric_difference());
 my $extraGrubInstallArgsDiffer = scalar (List::Compare->new( '-u', '-a', \@extraGrubInstallArgs, \@prevExtraGrubInstallArgs)->get_symmetric_difference());
@@ -667,7 +675,11 @@ if ($requireNewInstall != 0) {
     print FILE $efiTarget, "\n" or die;
     print FILE join( ",", @deviceTargets ), "\n" or die;
     print FILE $efiSysMountPoint, "\n" or die;
-    print FILE encode_json(\@extraGrubInstallArgs), "\n" or die;
+    my %jsonState = (
+        extraGrubInstallArgs => \@extraGrubInstallArgs
+    );
+    my $jsonStateLine = encode_json(\%jsonState);
+    print FILE $jsonStateLine, "\n" or die;
     close FILE or die;
 
     # Atomically switch to the new state file
