@@ -10,11 +10,11 @@
 
 stdenv.mkDerivation rec {
   pname = "gst-validate";
-  version = "1.16.2";
+  version = "1.18.0";
 
   src = fetchurl {
     url = "${meta.homepage}/src/${pname}/${pname}-${version}.tar.xz";
-    sha256 = "1jpfrzg3yc6kp66bgq3jy14xsj3x71mk2zh0k16yf0326awwqqa8";
+    sha256 = "1jpfrzg3yc6kp66bgq3jy14xsj3x71mk2zh0k16yf0326awwqqaa";
   };
 
   outputs = [ "out" "dev" ];

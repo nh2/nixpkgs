@@ -14,13 +14,13 @@
 
 stdenv.mkDerivation rec {
   pname = "gstreamer-editing-services";
-  version = "1.16.2";
+  version = "1.18.0";
 
   outputs = [ "out" "dev" ];
 
   src = fetchurl {
     url = "${meta.homepage}/src/${pname}/${pname}-${version}.tar.xz";
-    sha256 = "05hcf3prna8ajjnqd53221gj9syarrrjbgvjcbhicv0c38csc1hf";
+    sha256 = "05hcf3prna8ajjnqd53221gj9syarrrjbgvjcbhicv0c38csc1f2";
   };
 
   patches = [
@@ -46,7 +46,6 @@ stdenv.mkDerivation rec {
   ];
 
   mesonFlags = [
-    "-Dgtk_doc=disabled"
   ];
 
   postPatch = ''
