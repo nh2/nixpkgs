@@ -110,6 +110,11 @@ in stdenv.mkDerivation rec {
       url = "https://gitlab.freedesktop.org/gstreamer/gst-plugins-bad/-/commit/84f8dbd932029220ee86154dd85b241911ea3891.patch";
       sha256 = "0596lvgi93sj3yn98grgmsrhnqhhq7fnjk91qi4xc6618fpqmp9x";
     })
+    (fetchpatch {
+      name = "srt-Add-packetfilter-property-Allows-configuring-FEC.patch";
+      url = "https://gitlab.freedesktop.org/nh2/gst-plugins-bad/-/commit/dce24469d7fbc9d9fff4377f3880c7b66c6cb7ae.patch";
+      sha256 = "1hfvi90krx23gvkddgil86zzgfkvpyngwwj0950yipp8a5jcl4n3";
+    })
   ];
 
   nativeBuildInputs = [
