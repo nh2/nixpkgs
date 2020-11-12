@@ -1,39 +1,34 @@
-{ stdenv, gcc, libav_12, fetchFromGitHub }:
+{ stdenv, gcc, ffmpeg, libui, fetchFromGitHub }:
 
 stdenv.mkDerivation {
   pname = "untrunc";
   version = "2018.01.13";
 
   src = fetchFromGitHub {
-    owner = "ponchio";
+    owner = "anthwlock";
     repo = "untrunc";
-    rev = "3a2e6d0718faf06589f7b9d95c8f966348e537f7";
-    sha256 = "03ka4lr69k7mikfpcpd95smzdj62v851ididnjyps5a0j06f8087";
+    rev = "d6f0790d7b6f757eb846fe1f64c7a2da9a72c2ae";
+    sha256 = "0ncdn66a491a3vgjkp96sc5h4qyd8p7cbx1mminrl2742l45w70k";
   };
 
-  buildInputs = [ gcc libav_12 ];
+  buildInputs = [ gcc ffmpeg libui ];
 
-  # Untrunc uses the internal libav headers 'h264dec.h' and 'config.h'.
-  # The latter must be created through 'configure'.
-  libavConfiguredSrc = libav_12.overrideAttrs (oldAttrs: {
-    name = "libav-configured-src";
-    outputs = [ "out" ];
-    phases = [ "unpackPhase" "patchPhase" "configurePhase" "installPhase" ];
-    installPhase = "cp -r . $out";
-  });
+  makeFlags = [
+    "untrunc"
+    # "untrunc-gui"
+    "-j4"
+  ];
 
-  buildCommand = ''
-    mkdir -p $out/bin
-    g++ -o $out/bin/untrunc \
-        -Wno-deprecated-declarations \
-        $src/file.cpp $src/main.cpp $src/track.cpp $src/atom.cpp $src/mp4.cpp \
-        -I$libavConfiguredSrc -lavformat -lavcodec -lavutil
+  installPhase = ''
+    mkdir -p "$out/bin"
+    # cp untrunc untrunc-gui "$out/bin"
+    cp untrunc "$out/bin"
   '';
 
   meta = with stdenv.lib; {
-    description = "Restore a damaged (truncated) mp4, m4v, mov, 3gp video from a similar, undamaged video";
+    description = "Restore a damaged (truncated) mp4, m4v, mov, 3gp video. Provided you have a similar not broken video";
     license = licenses.gpl2;
-    homepage = "https://github.com/ponchio/untrunc";
+    homepage = "https://github.com/anthwlock/untrunc";
     maintainers = [ maintainers.earvstedt ];
   };
 }
