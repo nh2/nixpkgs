@@ -51,7 +51,10 @@ in
 
       settings = mkOption {
         type = format.type;
-        default = { };
+        default = {
+          # Agrees with `StateDirectory = "nomad"` set below.
+          data_dir = "/var/lib/nomad";
+        };
         description = ''
           Configuration for Nomad. See the <link xlink:href="https://www.nomadproject.io/docs/configuration">documentation</link>
           for supported values.
@@ -59,7 +62,6 @@ in
         example = literalExample ''
           {
             # A minimal config example:
-            data_dir = "/var/lib/''${config.systemd.services.nomad.serviceConfig.StateDirectory}";
             server = {
               enabled = true;
               bootstrap_expect = 1; # for demo; no fault tolerance
@@ -106,6 +108,7 @@ in
         OOMScoreAdjust = -1000;
         Restart = "on-failure";
         RestartSec = 2;
+        # Agrees with the default `data_dir = "/var/lib/nomad"` in `settings` above.
         StateDirectory = "nomad";
         TasksMax = "infinity";
         User = optionalString cfg.dropPrivileges "nomad";
