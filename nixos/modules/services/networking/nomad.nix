@@ -52,6 +52,13 @@ in
       after = [ "network-online.target" ];
       restartTriggers = [ config.environment.etc."nomad.json".source ];
 
+      path = with pkgs; [
+        # Client mode requires at least the following:
+        coreutils
+        iproute
+        iptables
+      ];
+
       serviceConfig = {
         DynamicUser = cfg.dropPrivileges;
         ExecReload = "${pkgs.coreutils}/bin/kill -HUP $MAINPID";
