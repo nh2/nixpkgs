@@ -34,6 +34,18 @@ in
           Configuration for Nomad. See the <link xlink:href="https://www.nomadproject.io/docs/configuration">documentation</link>
           for supported values.
         '';
+        example = literalExample ''
+          # A minimal config example:
+          data_dir = "/var/lib/''${config.systemd.services.nomad.serviceConfig.StateDirectory}";
+          server = {
+            enabled = true;
+            bootstrap_expect = 1; # for demo; no fault tolerance
+          };
+          client = {
+            enabled = true;
+            network_speed = 1000; # MBit/s
+          };
+        '';
       };
     };
   };
