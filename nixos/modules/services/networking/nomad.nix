@@ -50,7 +50,7 @@ in
       wantedBy = [ "multi-user.target" ];
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
-      restartTriggers = [ environment.etc."nomad.json".source ];
+      restartTriggers = [ config.environment.etc."nomad.json".source ];
 
       serviceConfig = {
         DynamicUser = cfg.dropPrivileges;
