@@ -63,11 +63,12 @@ in
         OOMScoreAdjust = -1000;
         Restart = "on-failure";
         RestartSec = 2;
-        StartLimitBurst = 3;
-        StartLimitIntervalSec = 10;
         StateDirectory = "nomad";
         TasksMax = "infinity";
         User = optionalString cfg.dropPrivileges "nomad";
+      unitConfig = {
+        StartLimitIntervalSec = 10;
+        StartLimitBurst = 3;
       };
     };
   };
