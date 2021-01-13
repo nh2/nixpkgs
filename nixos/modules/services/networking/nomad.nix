@@ -19,6 +19,17 @@ in
         '';
       };
 
+      extraPackages = mkOption {
+        type = types.listOf types.package;
+        default = [ ];
+        description = ''
+          Extra packages to add to <envar>PATH</envar> for the Nomad agent process.
+        '';
+        example = literalExample ''
+          with pkgs; [ cni-plugins ]
+        '';
+      };
+
       dropPrivileges = mkOption {
         type = types.bool;
         default = true;
@@ -77,12 +88,12 @@ in
       after = [ "network-online.target" ];
       restartTriggers = [ config.environment.etc."nomad.json".source ];
 
-      path = with pkgs; [
+      path = cfg.extraPackages ++ (with pkgs; [
         # Client mode requires at least the following:
         coreutils
         iproute
         iptables
-      ];
+      ]);
 
       serviceConfig = {
         DynamicUser = cfg.dropPrivileges;
