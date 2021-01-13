@@ -27,6 +27,17 @@ in
         '';
       };
 
+      enableDocker = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Enable Docker support. Needed for Nomad's docker driver.
+
+          Note that the docker group membership is effectively equivalent
+          to being root, see https://github.com/moby/moby/issues/9976.
+        '';
+      };
+
       settings = mkOption {
         type = format.type;
         default = { };
@@ -85,10 +96,16 @@ in
         StateDirectory = "nomad";
         TasksMax = "infinity";
         User = optionalString cfg.dropPrivileges "nomad";
+      } // (if !cfg.enableDocker then { } else {
+        SupplementaryGroups = "docker"; # space-separated string
+      });
       unitConfig = {
         StartLimitIntervalSec = 10;
         StartLimitBurst = 3;
       };
     };
+
+    # Docker support requires the Docker daemon to be running.
+    virtualisation.docker.enable = mkIf cfg.enableDocker true;
   };
 }
