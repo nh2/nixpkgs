@@ -5,6 +5,8 @@
 , openssl, bzip2, bash, unzip, zip
 , libredirect
 , pkexecPath ? "/run/wrappers/bin/pkexec"
+, gksudoPath ? "/run/current-system/sw/bin/gksudo"
+, buildPackages
 }:
 
 let
@@ -26,7 +28,12 @@ let
   }.${stdenv.hostPlatform.system};
 
   libPath = lib.makeLibraryPath [ xorg.libX11 xorg.libXtst glib libglvnd openssl gtk3 cairo pango ];
-  redirects = [ "/usr/bin/pkexec=${pkexecPath}" ];
+  gksudo_wrapper_script = buildPackages.writers.writePython3 "test_python3" {} (builtins.readFile ./gksudo-wrapper-script.py);
+  redirects = [
+    # "/usr/bin/pkexec=${pkexecPath}"
+    "/usr/bin/gksudo=${gksudoPath}"
+    # "/usr/bin/gksudo=${gksudo_wrapper_script}"
+  ];
 in let
   binaryPackage = stdenv.mkDerivation {
     pname = "${pname}-bin";

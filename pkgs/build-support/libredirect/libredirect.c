@@ -180,7 +180,21 @@ int posix_spawn(pid_t * pid, const char * path,
         const posix_spawnattr_t *,
         char * const argv[], char * const envp[]) = dlsym(RTLD_NEXT, "posix_spawn");
     char buf[PATH_MAX];
+    fprintf(stderr, "redirect: posix_spawn of %s\n", path);
     return posix_spawn_real(pid, rewrite(path, buf), file_actions, attrp, argv, envp);
+}
+
+// Returns 1 if `suffix` is a suffix of `str`, otherwise 0.
+// From https://stackoverflow.com/questions/744766/how-to-compare-ends-of-strings-in-c/744822#744822
+int string_endswith(const char *str, const char *suffix)
+{
+    if (!str || !suffix)
+        return 0;
+    size_t lenstr = strlen(str);
+    size_t lensuffix = strlen(suffix);
+    if (lensuffix > lenstr)
+        return 0;
+    return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
 }
 
 int posix_spawnp(pid_t * pid, const char * file,
@@ -193,6 +207,14 @@ int posix_spawnp(pid_t * pid, const char * file,
         const posix_spawnattr_t *,
         char * const argv[], char * const envp[]) = dlsym(RTLD_NEXT, "posix_spawnp");
     char buf[PATH_MAX];
+    fprintf(stderr, "redirect: posix_spawnp of %s with %d redirects\n", file, nrRedirects);
+    fflush(stderr);
+    if (!string_endswith(file, ".sublime_text-wrapped")) {
+        fprintf(stderr, "redirect: dropping LD_PRELOAD before posix_spawnp of %s\n", file);
+        fflush(stderr);
+        unsetenv("LD_PRELOAD");
+    }
+    fprintf(stderr, "redirect: posix_spawnp redirect result is %s\n", rewrite(file, buf));
     return posix_spawnp_real(pid, rewrite(file, buf), file_actions, attrp, argv, envp);
 }
 
@@ -200,5 +222,14 @@ int execv(const char *path, char *const argv[])
 {
     int (*execv_real) (const char *path, char *const argv[]) = dlsym(RTLD_NEXT, "execv");
     char buf[PATH_MAX];
+    fprintf(stderr, "redirect: execv of %s\n", path);
     return execv_real(rewrite(path, buf), argv);
+}
+
+int execve(const char *path, char *const argv[], char *const envp[])
+{
+    int (*execve_real) (const char *path, char *const argv[], char *const envp[]) = dlsym(RTLD_NEXT, "execve");
+    char buf[PATH_MAX];
+    fprintf(stderr, "redirect: execve of %s\n", path);
+    return execve_real(rewrite(path, buf), argv, envp);
 }
