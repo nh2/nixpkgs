@@ -357,6 +357,17 @@ in
         description = ''
           The contents of the configuration file of the X server
           (<filename>xorg.conf</filename>).
+
+          This option is set by multiple modules, and the configs are
+          concatenated together.
+
+          In Xorg configs the last config entries take precedence.
+          The NixOS default config has a <literal>lib.mkOrder</literal>
+          set so that if you just set this option without explicit order,
+          your config will be rendered after the default config
+          (thus overriding the default config).
+          If you want your config to be rendered before the default conifg,
+          you can used <literal>lib.mkBefore</literal> on this option.
         '';
       };
 
@@ -731,7 +742,14 @@ in
       touch "$out"
     '');
 
-    services.xserver.config =
+    # In xorg.conf, later configs override previous ones.
+    # We give the default NixOS entries a less-than-default order of 900,
+    # so that the order is:
+    #     mkBefore
+    #     this-default-config
+    #     user-setting-config-without-order-priority
+    #     mkAfter
+    services.xserver.config = mkOrder 900
       ''
         Section "ServerFlags"
           Option "AllowMouseOpenFail" "on"
