@@ -18,6 +18,24 @@ let
       export SMTP_USER_PWD # separate export to make `set -e` work
     ''}
   '';
+
+  # Like `runCommand`, but in Python: Expects to produce a file whose path
+  # is given in environment variable `out`.
+  runPython3Command = name: writerArgs: pythonScriptText:
+    let
+      pythonScriptDrv =
+        pkgs.writers.writePython3
+        name
+        (writerArgs // {
+          # Default style ignores:
+          flakeIgnore = (writerArgs.flakeIgnore or []) ++ [
+            "E401" # allow: Multiple imports on one line
+            "E501" # allow: Line too long (spliced nix store paths as string literals are often longer)
+          ];
+        })
+        pythonScriptText;
+    in
+      pkgs.runCommand "run-python-${name}" {} ''exec "${pythonScriptDrv}"'';
 in {
   options.services.plausible = {
     enable = mkEnableOption "plausible";
@@ -275,10 +293,11 @@ in {
                   '';
                 };
               in
-                pkgs.runCommand "plausible-vm-args" {} ''
-                  set -eu -o pipefail
-                  IP=$(${erlangAddressTupleCommand})
-                  echo "-kernel inet_dist_use_interface \"$IP\"" > "$out"
+                runPython3Command "print-plausible-vm-args" {} ''
+                  import os, subprocess
+                  erlang_addr = subprocess.check_output(["${erlangAddressTupleCommand}"], universal_newlines=True)
+                  with open(os.environ["out"], 'w') as out:
+                      out.write(f"-kernel inet_dist_use_interface '{erlang_addr}'")
                 '';
             # Elixir also spawns EPMD; set its listen address.
             ERL_EPMD_ADDRESS = cfg.erlang.epmdListenAddress;
