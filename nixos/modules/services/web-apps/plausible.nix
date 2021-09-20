@@ -237,6 +237,18 @@ in {
 
     environment.systemPackages = [ pkgs.plausible ];
 
+    users.users = {
+      plausible = {
+        group = config.users.groups.plausible.name;
+        isSystemUser = true;
+        uid = config.ids.uids.plausible;
+      };
+    };
+
+    users.groups = {
+      plausible.gid = config.ids.gids.plausible;
+    };
+
     systemd.services = mkMerge [
       {
         plausible = {
@@ -359,8 +371,8 @@ in {
           '';
 
           serviceConfig = {
-            DynamicUser = true;
-            PrivateTmp = true;
+            User = config.users.users.plausible.uid;
+            Group = config.users.groups.plausible.gid;
             WorkingDirectory = "/var/lib/plausible";
             StateDirectory = "plausible";
             LoadCredential = [
