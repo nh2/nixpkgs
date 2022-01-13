@@ -178,7 +178,7 @@ in {
       enable = true;
     };
 
-    services.epmd.enable = true;
+    services.epmd.enable = false;
 
     environment.systemPackages = [ pkgs.plausible ];
 
