@@ -11,13 +11,6 @@ in {
 
     package = mkPackageOptionMD pkgs "plausible" { };
 
-    releaseCookiePath = mkOption {
-      type = with types; either str path;
-      description = lib.mdDoc ''
-        The path to the file with release cookie. (used for remote connection to the running node).
-      '';
-    };
-
     adminUser = {
       name = mkOption {
         default = "admin";
@@ -90,6 +83,13 @@ in {
           how to generate one are documented in the
           [
           framework docs](https://hexdocs.pm/phoenix/Mix.Tasks.Phx.Gen.Secret.html#content).
+        '';
+      };
+      listenAddress = mkOption {
+        default = "127.0.0.1";
+        type = types.str;
+        description = lib.mdDoc ''
+          The IP address on which the server is listening.
         '';
       };
       port = mkOption {
@@ -180,7 +180,8 @@ in {
       enable = true;
     };
 
-    services.epmd.enable = true;
+    # See note [plausible-needs-no-erlang-distributed-features].
+    services.epmd.enable = false;
 
     environment.systemPackages = [ cfg.package ];
 
@@ -209,6 +210,32 @@ in {
             # Configuration options from
             # https://plausible.io/docs/self-hosting-configuration
             PORT = toString cfg.server.port;
+            LISTEN_IP = cfg.server.listenAddress;
+
+            # Note [plausible-needs-no-erlang-distributed-features]:
+            # Plausible does not use, and does not plan to use, any of
+            # Erlang's distributed features, see:
+            #     https://github.com/plausible/analytics/pull/1190#issuecomment-1018820934
+            # Thus, disable distribution for improved simplicity and security:
+            #
+            # When distribution is enabled,
+            # Elixir spwans the Erlang VM, which will listen by default on all
+            # interfaces for messages between Erlang nodes (capable of
+            # remote code execution); it can be protected by a cookie; see
+            # https://erlang.org/doc/reference_manual/distributed.html#security).
+            #
+            # It would be possible to restrict the interface to one of our choice
+            # (e.g. localhost or a VPN IP) similar to how we do it with `listenAddress`
+            # for the Plausible web server; if distribution is ever needed in the future,
+            # https://github.com/NixOS/nixpkgs/pull/130297 shows how to do it.
+            #
+            # But since Plausible does not use this feature in any way,
+            # we just disable it.
+            RELEASE_DISTRIBUTION = "none";
+            # Additional safeguard, in case `RELEASE_DISTRIBUTION=none` ever
+            # stops disabling the start of EPMD.
+            ERL_EPMD_ADDRESS = "127.0.0.1";
+
             DISABLE_REGISTRATION = boolToString cfg.server.disableRegistration;
 
             RELEASE_TMP = "/var/lib/plausible/tmp";
@@ -240,7 +267,10 @@ in {
           script = ''
             export CONFIG_DIR=$CREDENTIALS_DIRECTORY
 
-            export RELEASE_COOKIE="$(< $CREDENTIALS_DIRECTORY/RELEASE_COOKIE )"
+            # Elixir does not start up if `RELEASE_COOKIE` is not set,
+            # even though we set `RELEASE_DISTRIBUTION=none` so the cookie should be unused.
+            # Thus, make a random one, which should then be ignored.
+            export RELEASE_COOKIE=$(tr -dc A-Za-z0-9 < /dev/urandom | head -c 20)
 
             # setup
             ${cfg.package}/createdb.sh
@@ -262,7 +292,6 @@ in {
             LoadCredential = [
               "ADMIN_USER_PWD:${cfg.adminUser.passwordFile}"
               "SECRET_KEY_BASE:${cfg.server.secretKeybaseFile}"
-              "RELEASE_COOKIE:${cfg.releaseCookiePath}"
             ] ++ lib.optionals (cfg.mail.smtp.passwordFile != null) [ "SMTP_USER_PWD:${cfg.mail.smtp.passwordFile}"];
           };
         };

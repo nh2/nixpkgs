@@ -2,6 +2,7 @@
 , stdenv
 , beamPackages
 , fetchFromGitHub
+, fetchpatch
 , glibcLocales
 , cacert
 , mkYarnModules
@@ -48,6 +49,17 @@ beamPackages.mixRelease {
   inherit pname version src mixFodDeps;
 
   nativeBuildInputs = [ nodejs ];
+
+  patches = [
+    # Allow user to specify listen interface via LISTEN_IP.
+    # https://github.com/plausible/analytics/pull/1190, but rebased onto 1.4.3
+    # TODO: Remove with Plausible >= 1.5
+    (fetchpatch {
+      name = "plausible-Allow-user-to-specify-listen-interface-via-LISTEN_IP.patch";
+      url = "https://github.com/nh2/analytics/commit/25b65f7de6a927693acae641d46f4b98ea556e6b.patch";
+      sha256 = "0m4la5jd1swhicp9awnh7l8zk0lx6s5pddxmqv8x10mkbigw2s1n";
+    })
+  ];
 
   passthru = {
     tests = { inherit (nixosTests) plausible; };
