@@ -531,6 +531,8 @@ self: super: with self; {
 
   amarna = callPackage ../development/python-modules/amarna { };
 
+  amat = callPackage ../development/python-modules/amat { };
+
   amazon-ion = callPackage ../development/python-modules/amazon-ion { };
 
   amazon-kclpy = callPackage ../development/python-modules/amazon-kclpy { };
