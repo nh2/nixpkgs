@@ -8228,6 +8228,10 @@ with pkgs;
 
   just = callPackage ../development/tools/just { };
 
+  justbuild = callPackage ../development/tools/build-managers/justbuild {
+    stdenv = if stdenv.isAarch64 then gcc11Stdenv else stdenv;
+  };
+
   go-jira = callPackage ../applications/misc/go-jira { };
 
   john = callPackage ../tools/security/john { };
