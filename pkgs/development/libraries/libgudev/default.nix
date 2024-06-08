@@ -2,9 +2,11 @@
 , fetchurl
 , pkgconfig
 , udev
+, eudev
 , glib
 , gobject-introspection
 , gnome3
+, enableSystemd ? (!stdenv.hostPlatform.isMusl) # systemd does not build with musl
 }:
 
 stdenv.mkDerivation rec {
@@ -19,7 +21,10 @@ stdenv.mkDerivation rec {
   };
 
   nativeBuildInputs = [ pkgconfig gobject-introspection ];
-  buildInputs = [ udev glib ];
+  buildInputs = [
+    (if enableSystemd then udev else eudev)
+    glib
+  ];
 
   # There's a dependency cycle with umockdev and the tests fail to LD_PRELOAD anyway.
   configureFlags = [ "--disable-umockdev" ];

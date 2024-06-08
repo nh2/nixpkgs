@@ -3,6 +3,8 @@
 , cryptsetup, lvm2, dmraid, utillinux, libbytesize, libndctl, nss, volume_key
 , libxslt, docbook_xsl, gptfdisk, libyaml, autoconf-archive
 , thin-provisioning-tools, makeWrapper
+, eudev
+, enableSystemd ? (!stdenv.hostPlatform.isMusl) # systemd does not build with musl
 }:
 stdenv.mkDerivation rec {
   pname = "libblockdev";
@@ -34,7 +36,9 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    glib udev kmod parted gptfdisk cryptsetup lvm2 dmraid utillinux libbytesize
+    glib
+    (if enableSystemd then udev else eudev)
+    kmod parted gptfdisk cryptsetup lvm2 dmraid utillinux libbytesize
     libndctl nss volume_key libyaml
   ];
 

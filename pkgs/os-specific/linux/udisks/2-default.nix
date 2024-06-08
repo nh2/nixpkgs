@@ -3,6 +3,8 @@
 , expat, libxslt, docbook_xsl, utillinux, mdadm, libgudev, libblockdev, parted
 , gobject-introspection, docbook_xml_dtd_412, docbook_xml_dtd_43, autoconf, automake
 , xfsprogs, f2fs-tools, dosfstools, e2fsprogs, btrfs-progs, exfat, nilfs-utils, ntfs3g
+, utillinuxMinimal
+, enableSystemd ? (!stdenv.hostPlatform.isMusl) # systemd does not build with musl
 }:
 
 stdenv.mkDerivation rec {
@@ -34,7 +36,7 @@ stdenv.mkDerivation rec {
       src = ./force-path.patch;
       path = stdenv.lib.makeBinPath [
         btrfs-progs coreutils dosfstools e2fsprogs exfat f2fs-tools nilfs-utils
-        xfsprogs ntfs3g parted utillinux
+        xfsprogs ntfs3g parted (if enableSystemd then utillinux else utillinuxMinimal)
       ];
     })
   ];
@@ -51,15 +53,16 @@ stdenv.mkDerivation rec {
   '';
 
   buildInputs = [
-    expat libgudev libblockdev acl systemd glib libatasmart polkit
-  ];
+    expat libgudev libblockdev acl glib libatasmart polkit
+  ] ++ stdenv.lib.optional enableSystemd systemd;
 
   preConfigure = "NOCONFIGURE=1 ./autogen.sh";
 
   configureFlags = [
     (stdenv.lib.enableFeature (stdenv.buildPlatform == stdenv.hostPlatform) "gtk-doc")
     "--localstatedir=/var"
-    "--with-systemdsystemunitdir=$(out)/etc/systemd/system"
+    (stdenv.lib.withFeatureAs enableSystemd
+       "systemdsystemunitdir" "$(out)/etc/systemd/system")
     "--with-udevdir=$(out)/lib/udev"
     "--with-tmpfilesdir=no"
   ];

@@ -1,4 +1,8 @@
-{ stdenv, fetchurl, pkgconfig, udev, buildPackages }:
+{ stdenv, fetchurl, pkgconfig, buildPackages
+, udev
+, eudev
+, enableSystemd ? (!stdenv.hostPlatform.isMusl) # systemd does not build with musl
+}:
 
 stdenv.mkDerivation rec {
   name = "libatasmart-0.19";
@@ -10,7 +14,9 @@ stdenv.mkDerivation rec {
 
   depsBuildBuild = [ buildPackages.stdenv.cc ];
   nativeBuildInputs = [ pkgconfig ];
-  buildInputs = [ udev ];
+  buildInputs = [
+    (if enableSystemd then udev else eudev)
+  ];
 
   meta = with stdenv.lib; {
     homepage = http://0pointer.de/blog/projects/being-smart.html;

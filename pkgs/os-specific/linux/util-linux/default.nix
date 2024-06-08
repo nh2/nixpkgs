@@ -1,5 +1,9 @@
 { lib, stdenv, fetchurl, pkgconfig, zlib, shadow
-, ncurses ? null, perl ? null, pam, systemd ? null, minimal ? false }:
+, ncurses ? null, perl ? null, pam, systemd ? null, minimal ? false
+, enableSystemd ? (!stdenv.hostPlatform.isMusl) # systemd does not build with musl
+}:
+
+assert enableSystemd -> systemd != null;
 
 let
   version = lib.concatStringsSep "." ([ majorVersion ]
@@ -44,8 +48,8 @@ in stdenv.mkDerivation rec {
     "--disable-makeinstall-setuid" "--disable-makeinstall-chown"
     "--disable-su" # provided by shadow
     (lib.withFeature (ncurses != null) "ncursesw")
-    (lib.withFeature (systemd != null) "systemd")
-    (lib.withFeatureAs (systemd != null)
+    (lib.withFeature enableSystemd "systemd")
+    (lib.withFeatureAs enableSystemd
        "systemdsystemunitdir" "${placeholder "bin"}/lib/systemd/system/")
   ] ++ lib.optional (stdenv.hostPlatform != stdenv.buildPlatform)
        "scanf_cv_type_modifier=ms"
@@ -59,7 +63,8 @@ in stdenv.mkDerivation rec {
   nativeBuildInputs = [ pkgconfig ];
   buildInputs =
     [ zlib pam ]
-    ++ lib.filter (p: p != null) [ ncurses systemd perl ];
+    ++ lib.optional enableSystemd systemd
+    ++ lib.filter (p: p != null) [ ncurses perl ];
 
   doCheck = false; # "For development purpose only. Don't execute on production system!"
 

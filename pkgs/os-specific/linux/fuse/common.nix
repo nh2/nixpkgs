@@ -29,6 +29,13 @@ in stdenv.mkDerivation rec {
         url = "https://github.com/libfuse/libfuse/commit/914871b20a901e3e1e981c92bc42b1c93b7ab81b.patch";
         sha256 = "1w4j6f1awjrycycpvmlv0x5v9gprllh4dnbjxl4dyl2jgbkaw6pa";
       })
+    # Fixed in >= fuse-3.9.1
+    ++ stdenv.lib.optional
+      (isFuse3 && stdenv.hostPlatform.isMusl)
+      (fetchpatch {
+        url = "https://github.com/libfuse/libfuse/commit/562223325e6dd2fde2f4e0077dac7e1c44e3dd18.patch";
+        sha256 = "07b521kaz8s58wylsrz1c4px6zwvwindhjwdn17fi9y7fk40xh5c";
+      })
     ++ (if isFuse3
       then [ ./fuse3-install.patch ./fuse3-Do-not-set-FUSERMOUNT_DIR.patch ]
       else [ ./fuse2-Do-not-set-FUSERMOUNT_DIR.patch ]);

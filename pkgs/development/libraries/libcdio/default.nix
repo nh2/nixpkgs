@@ -16,7 +16,13 @@ stdenv.mkDerivation rec {
   buildInputs = [ libcddb ncurses help2man ]
     ++ stdenv.lib.optionals stdenv.isDarwin [ libiconv Carbon IOKit ];
 
-  doCheck = !stdenv.isDarwin;
+  # Test failure with musl:
+  #     FAIL: realpath
+  #     ==============
+  #
+  #     -- Temp directory is /tmp/
+  #     direct cdio_realpath cycle test failed. /tmp/syml_IpplDK vs
+  doCheck = !stdenv.isDarwin && !stdenv.hostPlatform.isMusl;
 
   meta = with stdenv.lib; {
     description = "A library for OS-independent CD-ROM and CD image access";

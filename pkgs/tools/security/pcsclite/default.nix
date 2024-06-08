@@ -1,5 +1,8 @@
 { stdenv, fetchurl, pkgconfig, udev, dbus, perl, python2
-, IOKit ? null }:
+, eudev
+, IOKit ? null
+, enableSystemd ? (stdenv.isLinux && !stdenv.hostPlatform.isMusl) # systemd does not build with musl
+}:
 
 stdenv.mkDerivation rec {
   pname = "pcsclite";
@@ -19,9 +22,9 @@ stdenv.mkDerivation rec {
     "--enable-usbdropdir=/var/lib/pcsc/drivers"
     "--enable-confdir=/etc"
     "--enable-ipcdir=/run/pcscd"
-  ] ++ stdenv.lib.optional stdenv.isLinux
+  ] ++ stdenv.lib.optional enableSystemd
          "--with-systemdsystemunitdir=\${out}/etc/systemd/system"
-    ++ stdenv.lib.optional (!stdenv.isLinux)
+    ++ stdenv.lib.optional (!enableSystemd)
          "--disable-libsystemd";
 
   postConfigure = ''
@@ -36,8 +39,13 @@ stdenv.mkDerivation rec {
   '';
 
   nativeBuildInputs = [ pkgconfig perl python2 ];
-  buildInputs = stdenv.lib.optionals stdenv.isLinux [ udev dbus ]
-             ++ stdenv.lib.optionals stdenv.isDarwin [ IOKit ];
+  buildInputs =
+    stdenv.lib.optionals stdenv.isLinux [
+      (if enableSystemd then udev else eudev)
+      dbus
+    ] ++ stdenv.lib.optionals stdenv.isDarwin [
+      IOKit
+    ];
 
   meta = with stdenv.lib; {
     description = "Middleware to access a smart card using SCard API (PC/SC)";

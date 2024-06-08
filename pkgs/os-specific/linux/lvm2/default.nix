@@ -1,6 +1,11 @@
 { stdenv, fetchgit, fetchpatch, pkgconfig, systemd, udev, utillinux, libuuid
 , thin-provisioning-tools, libaio
-, enable_dmeventd ? false }:
+, eudev
+, enable_dmeventd ? false
+, enableSystemd ? (!stdenv.hostPlatform.isMusl) # systemd does not build with musl
+}:
+
+assert enableSystemd -> systemd != null;
 
 let
   version = "2.03.01";
@@ -29,13 +34,18 @@ stdenv.mkDerivation {
   ];
 
   nativeBuildInputs = [ pkgconfig ];
-  buildInputs = [ udev libuuid thin-provisioning-tools libaio ];
+  buildInputs = [
+    (if enableSystemd then udev else eudev)
+    libuuid
+    thin-provisioning-tools
+    libaio
+  ];
 
   preConfigure =
     ''
       sed -i /DEFAULT_SYS_DIR/d Makefile.in
       sed -i /DEFAULT_PROFILE_DIR/d conf/Makefile.in
-    '' + stdenv.lib.optionalString (systemd != null) ''
+    '' + stdenv.lib.optionalString enableSystemd ''
       substituteInPlace scripts/lvm2_activation_generator_systemd_red_hat.c \
         --replace /usr/bin/udevadm ${systemd}/bin/udevadm
     '';
@@ -72,7 +82,7 @@ stdenv.mkDerivation {
     ''
       substituteInPlace $out/lib/udev/rules.d/13-dm-disk.rules \
         --replace $out/sbin/blkid ${utillinux}/sbin/blkid
-    '' + stdenv.lib.optionalString (systemd != null) ''
+    '' + stdenv.lib.optionalString enableSystemd ''
       # Systemd stuff
       mkdir -p $out/etc/systemd/system $out/lib/systemd/system-generators
       cp scripts/blk_availability_systemd_red_hat.service $out/etc/systemd/system

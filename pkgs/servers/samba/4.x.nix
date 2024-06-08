@@ -1,4 +1,5 @@
 { lib, stdenv, fetchurl, python, pkgconfig, perl, libxslt, docbook_xsl, rpcgen
+, fetchpatch
 , fixDarwinDylibNames
 , docbook_xml_dtd_42, readline
 , popt, iniparser, libbsd, libarchive, libiconv, gettext
@@ -12,8 +13,10 @@
 , enableRegedit ? true
 , enableCephFS ? false
 , enableGlusterFS ? false
+, enableKerberos ? true
 , enableAcl ? (!stdenv.isDarwin)
 , enablePam ? (!stdenv.isDarwin)
+, enableSystemd ? (stdenv.hostPlatform.isLinux && !stdenv.hostPlatform.isMusl) # systemd does not build with musl
 }:
 
 with lib;
@@ -34,15 +37,36 @@ stdenv.mkDerivation rec {
     ./patch-source3__libads__kerberos_keytab.c.patch
     ./4.x-no-persistent-install-dynconfig.patch
     ./4.x-fix-makeflags-parsing.patch
+  ] ++ optionals stdenv.hostPlatform.isMusl [
+    # Fixes:
+    #     ../../nsswitch/wins.c:274:15: error: ‘NETDB_INTERNAL’ undeclared
+    (fetchpatch {
+      name = "samba-musl-netdb-defines.patch";
+      url = "https://git.alpinelinux.org/aports/plain/main/samba/netdb-defines.patch?id=d286252cfc072edd888e3a3c59fbf80b11f8db48";
+      sha256 = "0if57lwp7bbsyx4k9cp965blf2jcdx0cj3afrdp0ymwa1xd869mx";
+    })
+    # Fixes:
+    #     tevent.h:1440:8: error: unknown type name 'pid_t';
+    # Should really be upstreamed (nobody seems to have done it so far).
+    (fetchpatch {
+      name = "samba-007-libldb-fix-musl-libc-unkown-type-error.patch";
+      url = "https://gitce.net/mirrors/lede/raw/commit/5635bfee3a3b8a937a1b43931ba6a091fc749675/package/lean/samba4/patches/007-libldb-fix-musl-libc-unkown-type-error.patch";
+      sha256 = "0r5lg9jschnpqh6izn2hbj9ljwvyni7yfp4cyyri2lvv1w4mxy6g";
+    })
   ];
 
-  nativeBuildInputs = optionals stdenv.isDarwin [ rpcgen fixDarwinDylibNames ];
+  nativeBuildInputs =
+    optionals stdenv.isDarwin [ rpcgen fixDarwinDylibNames ]
+    # Getting `/bin/sh: rpcgen: not found` without this:
+    ++ optionals stdenv.hostPlatform.isMusl [ rpcgen ];
 
   buildInputs = [
     python pkgconfig perl libxslt docbook_xsl docbook_xml_dtd_42 /*
     docbook_xml_dtd_45 */ readline popt iniparser jansson
-    libbsd libarchive zlib fam libiconv gettext libunwind krb5Full
-  ] ++ optionals stdenv.isLinux [ libaio systemd ]
+    libbsd libarchive zlib fam libiconv gettext libunwind
+  ] ++ optionals enableKerberos [ krb5Full ]
+    ++ optionals stdenv.isLinux [ libaio ]
+    ++ optional enableSystemd systemd
     ++ optional enableLDAP openldap
     ++ optional (enablePrinting && stdenv.isLinux) cups
     ++ optional enableMDNS avahi
@@ -69,8 +93,6 @@ stdenv.mkDerivation rec {
   configureFlags = [
     "--with-static-modules=NONE"
     "--with-shared-modules=ALL"
-    "--with-system-mitkrb5"
-    "--with-system-mitkdc" krb5Full
     "--enable-fhs"
     "--sysconfdir=/etc"
     "--localstatedir=/var"
@@ -79,6 +101,10 @@ stdenv.mkDerivation rec {
          then "--with-experimental-mit-ad-dc"
          else "--without-ad-dc")
     ++ optionals (!enableLDAP) [ "--without-ldap" "--without-ads" ]
+    ++ optionals enableKerberos [
+      "--with-system-mitkrb5"
+      "--with-system-mitkdc" krb5Full
+    ]
     ++ optional (!enableAcl) "--without-acl-support"
     ++ optional (!enablePam) "--without-pam";
 

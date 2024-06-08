@@ -1,6 +1,8 @@
 { stdenv, fetchFromGitHub, autoreconfHook
 , asciidoctor, pkgconfig, xmlto, docbook_xsl, docbook_xml_dtd_45, libxslt
 , json_c, kmod, which, utillinux, systemd, keyutils
+, eudev
+, enableSystemd ? (stdenv.isLinux && !stdenv.hostPlatform.isMusl) # systemd does not build with musl
 }:
 
 stdenv.mkDerivation rec {
@@ -22,8 +24,8 @@ stdenv.mkDerivation rec {
     ];
 
   buildInputs =
-    [ json_c kmod utillinux systemd keyutils
-    ];
+    [ json_c kmod utillinux keyutils
+    ] ++ (if enableSystemd then [ systemd ] else [ eudev ]); # TODO check if `systemd` -> `udev` is possible
 
   configureFlags =
     [ "--without-bash"
