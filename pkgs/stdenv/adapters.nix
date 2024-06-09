@@ -126,6 +126,20 @@ rec {
       });
     });
 
+  # Return a modified stdenv that builds static libraries in addition to
+  # shared libraries.
+  makeStaticAndShardLibraries = stdenv:
+    stdenv.override (old: {
+      mkDerivationFromStdenv = extendMkDerivationArgs old (args: {
+        dontDisableStatic = true;
+      } // lib.optionalAttrs (!(args.dontAddStaticConfigureFlags or false)) {
+        configureFlags = (args.configureFlags or []) ++ [
+          "--enable-static"
+        ];
+        mesonFlags = (args.mesonFlags or []) ++ [ "-Ddefault_library=both" ];
+      });
+    });
+
   # Best effort static binaries. Will still be linked to libSystem,
   # but more portable than Nix store binaries.
   makeStaticDarwin = stdenv: stdenv.override (old: {
