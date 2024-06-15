@@ -1,5 +1,6 @@
 { lib, stdenv, fetchFromGitHub, cmake
 , curl, openssl, zlib, zstd
+, fetchpatch
 , libiconv
 , version, hash, ...
 }:
@@ -27,6 +28,15 @@ in stdenv.mkDerivation {
     "-DWITH_CURL=ON"
     "-DWITH_EXTERNAL_ZLIB=ON"
     "-DWITH_MYSQLCOMPAT=ON"
+  ];
+
+  patches = [
+    # Remove when https://github.com/mariadb-corporation/mariadb-connector-c/pull/248 is merged and available
+    (fetchpatch {
+      name = "mariadb-connector-c-mariadb_config-cmake-Dont-prefix-/absolute/file.a-with-l.patch";
+      url = "https://github.com/nh2/mariadb-connector-c/commit/b5e44831bdecf9f5e1d941c4c64999cfa589930e.patch";
+      hash = "sha256-SvXSOTKm3b3UFvpYiSaTXsijdqEn8f78VlKyeHekIkg=";
+    })
   ];
 
   postPatch = ''
