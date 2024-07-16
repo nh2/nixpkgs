@@ -3,32 +3,33 @@
   buildPythonPackage,
   fetchPypi,
   requests,
-  six,
   pytest,
 }:
 
 buildPythonPackage rec {
-  pname = "python-consul";
-  version = "1.1.0";
+  pname = "py-consul";
+  version = "1.5.1";
   format = "setuptools";
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "168f1fa53948047effe4f14d53fc1dab50192e2a2cf7855703f126f469ea11f4";
+    pname = "py_consul";
+    inherit version;
+    sha256 = "sha256-5nuBqEt9S640KX7K+C4GTdoyhq6nhNpDBVrUTO+EGK8=";
   };
 
   buildInputs = [
     requests
-    six
     pytest
   ];
 
-  # No tests distributed. https://github.com/cablehead/python-consul/issues/133
+  # Tests are now distributed (the original package doesn't, see
+  # https://github.com/cablehead/python-consul/issues/133). But these tests
+  # still require a running consul service, so we disable checks.
   doCheck = false;
 
   meta = {
     description = "Python client for Consul (https://www.consul.io/)";
-    homepage = "https://github.com/cablehead/python-consul";
+    homepage = "https://github.com/criteo/py-consul";
     license = lib.licenses.mit;
   };
 }
