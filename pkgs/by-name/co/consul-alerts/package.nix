@@ -6,27 +6,25 @@
 
 buildGoModule rec {
   pname = "consul-alerts";
-  version = "0.6.0";
+  version = "0.6.2";
 
   src = fetchFromGitHub {
     rev = "v${version}";
-    owner = "AcalephStorage";
+    owner = "EventStore";
     repo = "consul-alerts";
-    sha256 = "0836zicv76sd6ljhbbii1mrzh65pch10w3gfa128iynaviksbgn5";
+    sha256 = "sha256-0/GrqC0kxXj+VNhisVHnj2MVgZVRD4U/9RHtvSJI9eY=";
   };
 
-  postPatch = ''
-    go mod init github.com/AcalephStorage/consul-alerts
-  '';
+  vendorHash = "sha256-ZINEN9DSNQJiupLpI5I2QjggN2/BsVcgUjHM3C2Szc4=";
 
-  vendorHash = null;
-
+  # The `consul-alerts` test requires a running consul instance,
+  # otherwise the tests fail.
   doCheck = false;
 
   meta = {
     mainProgram = "consul-alerts";
     description = "Highly available daemon for sending notifications and reminders based on Consul health checks";
-    homepage = "https://github.com/AcalephStorage/consul-alerts";
+    homepage = "https://github.com/EventStore/consul-alerts";
     # As per README
     platforms = lib.platforms.linux ++ lib.platforms.freebsd ++ lib.platforms.darwin;
     license = lib.licenses.gpl2Only;
