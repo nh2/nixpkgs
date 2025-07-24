@@ -551,6 +551,27 @@ rec {
       "-DWITH_SYSTEM_UTF8PROC:BOOL=ON"
       "-DWITH_SYSTEM_ZSTD:BOOL=ON"
 
+      # Add `snappy` explicitly to the front of `PKG_CONFIG_PATH`:
+      # Doing that allows to override `snappy` just for Ceph
+      # (as opposed to also having to re-build all of Ceph's dependencies with this version);
+      # without this, `pkg-config`, may pick up a version brought in
+      # from one of Ceph's dependencies that also depend on `snappy`.
+      # So this this was added for:
+      #     https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3114292348
+      # Other supposedly sensible methods of doing this did not work:
+      # * Setting `PKG_CONFIG_PATH=${snappy.dev}/lib/pkgconfig:$PKG_CONFIG_PATH`
+      #   still picked up other versions if they were newer.
+      # * Playing with `-DCMAKE_FIND_PACKAGE_SORT_ORDER=...`
+      #   and `-DDCMAKE_FIND_PACKAGE_SORT_DIRECTION=...`
+      #   still picked up other versions.
+      # * Using
+      #       substituteInPlace CMakeLists.txt --replace "find_package(snappy REQUIRED)" "find_package(snappy ${snappy.version} EXACT REQUIRED)"
+      #   had no effect, see https://gitlab.kitware.com/cmake/cmake/-/issues/27095
+      # The relevant `Find*.cmake` file is:
+      #     https://github.com/ceph/ceph/blob/v19.2.2/cmake/modules/Findsnappy.cmake
+      "-DSNAPPY_INCLUDE_DIR=${snappy.dev}/include"
+      "-DSNAPPY_LIBRARIES=${snappy}/lib/libsnappy.so"
+
       # Use our own python libraries too, see:
       #     https://github.com/NixOS/nixpkgs/pull/344993#issuecomment-2391046329
       "-DCEPHADM_BUNDLED_DEPENDENCIES=none"

@@ -2536,6 +2536,22 @@ with pkgs;
       # * https://tracker.ceph.com/issues/71269
       # * https://github.com/NixOS/nixpkgs/issues/406306
       arrow-cpp = callPackage ../tools/filesystems/ceph/arrow-cpp-19.nix { };
+
+      # Ceph's snappy support fails with snappy-1.2.2 from
+      #     https://github.com/NixOS/nixpkgs/pull/406663
+      # so pinning the previous snappy-1.2.1 here:
+      #     https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3111515366
+      #     https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3111578290
+      # Remove once Ceph suppors Snappy >= 1.2.2
+      # (confirm by checking that the error log from
+      # https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3111515366
+      # is absent from Ceph's NixOS tests -- they will also fail otherwise,
+      # see https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3114292348).
+      #
+      # Note that ceph depends on `snappy` not only directly, but also
+      # via some of its dependencies; the `ceph` derivation passes
+      # `-DSNAPPY_*` explicitly to make sure the one given here is really used.
+      snappy = callPackage ../tools/filesystems/ceph/snappy-1.2.1.nix { };
     })
     ceph
     ceph-client
