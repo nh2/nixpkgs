@@ -2522,7 +2522,25 @@ with pkgs;
 
   libceph = ceph.lib;
   inherit
-    (callPackages ../tools/filesystems/ceph {
+    (
+    let
+      # Ceph's snappy support fails with snappy-1.2.2 from
+      #     https://github.com/NixOS/nixpkgs/pull/406663
+      # so pinning the previous snappy-1.2.1 here:
+      #     https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3111515366
+      #     https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3111578290
+      # Remove once Ceph suppors Snappy >= 1.2.2
+      # (confirm by checking that the error log from
+      # https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3111515366
+      # is absent from Ceph's NixOS tests -- they will also fail otherwise,
+      # see https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3114292348).
+      #
+      # It is important that `snappy` is overridden not only for `ceph` itself
+      # but also for all its dependencies (see below); otherwise the build system
+      # might pick the newest version.
+      snappy_for_ceph = callPackage ../tools/filesystems/ceph/snappy-1.2.1.nix { };
+    in
+    callPackages ../tools/filesystems/ceph {
       lua = lua5_4; # Ceph currently requires >= 5.3
 
       # To see which `fmt` version Ceph upstream recommends, check its `src/fmt` submodule.
@@ -2532,10 +2550,18 @@ with pkgs;
       # https://github.com/NixOS/nixpkgs/pull/281858#issuecomment-1899648638
       fmt = fmt_9;
 
+      snappy = snappy_for_ceph;
+
+      rocksdb = rocksdb.override {
+        snappy = snappy_for_ceph;
+      };
+
       # Remove once Ceph supports arrow-cpp >= 20, see:
       # * https://tracker.ceph.com/issues/71269
       # * https://github.com/NixOS/nixpkgs/issues/406306
-      arrow-cpp = callPackage ../tools/filesystems/ceph/arrow-cpp-19.nix { };
+      arrow-cpp = callPackage ../tools/filesystems/ceph/arrow-cpp-19.nix {
+        snappy = snappy_for_ceph;
+      };
     })
     ceph
     ceph-client
