@@ -551,6 +551,14 @@ rec {
       "-DWITH_SYSTEM_UTF8PROC:BOOL=ON"
       "-DWITH_SYSTEM_ZSTD:BOOL=ON"
 
+      # Giving these allows to override `snappy` just for Ceph;
+      # without this, Ceph would pick it up via `pkg-config`,
+      # which may pick up a version brought in from one of Ceph's dependencies
+      # that also depend on `snappy`. So this this was added for:
+      #     https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3114292348
+      "-DSNAPPY_INCLUDE_DIR=${snappy.dev}/include"
+      "-DSNAPPY_LIBRARIES=${snappy}/lib"
+
       # Use our own python libraries too, see:
       #     https://github.com/NixOS/nixpkgs/pull/344993#issuecomment-2391046329
       "-DCEPHADM_BUNDLED_DEPENDENCIES=none"
