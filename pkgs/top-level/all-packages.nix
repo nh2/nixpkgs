@@ -2536,6 +2536,13 @@ with pkgs;
       # * https://tracker.ceph.com/issues/71269
       # * https://github.com/NixOS/nixpkgs/issues/406306
       arrow-cpp = callPackage ../tools/filesystems/ceph/arrow-cpp-19.nix { };
+
+      # Ceph's snappy support fails with snappy-1.2.2 from
+      #     https://github.com/NixOS/nixpkgs/pull/406663
+      # so pinning the previous snappy-1.2.1 here:
+      #     https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3111515366
+      #     https://github.com/NixOS/nixpkgs/issues/426401#issuecomment-3111578290
+      snappy = callPackage ../tools/filesystems/ceph/snappy-1.2.1.nix { };
     })
     ceph
     ceph-client
