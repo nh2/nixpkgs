@@ -30,11 +30,7 @@
   #   and default to that.
   # * The version that Ceph downloads if `-DWITH_SYSTEM_BOOST:BOOL=ON` is not given
   #   is declared in `cmake/modules/BuildBoost.cmake` line `set(boost_version ...)`.
-  #
-  # If you want to upgrade to boost >= 1.86, you need a Ceph version that
-  # has this PR in:
-  #     https://github.com/ceph/ceph/pull/61312
-  boost183,
+  boost187,
   bzip2,
   cryptsetup,
   cunit,
@@ -199,11 +195,11 @@ let
 
   # If you change this, make sure to update:
   # * The pinned RocksDB version commit, see comment on `rocksdb` in this file.
-  version = "19.2.3";
+  version = "20.2.0";
 
   src = fetchurl {
     url = "https://download.ceph.com/tarballs/ceph-${version}.tar.gz";
-    hash = "sha256-zlgp28C81SZbaFJ4yvQk4ZgYz4K/aZqtcISTO8LscSU=";
+    hash = "sha256-jeBk1pgx7zJzOVOfIzx47IJ/o1HEDO2amRbwtBdMZoU=";
   };
 
   ceph-common =
@@ -241,7 +237,7 @@ let
       meta = getMeta "Ceph common module for code shared by manager modules";
     };
 
-  boost' = boost183.override {
+  boost' = boost187.override {
     enablePython = true;
     inherit python;
   };
@@ -300,40 +296,6 @@ stdenv.mkDerivation (finalAttrs: {
     ;
 
   patches = [
-    ./patches/boost-1.85.patch
-
-    (fetchpatch2 {
-      name = "ceph-boost-1.86-uuid.patch";
-      url = "https://github.com/ceph/ceph/commit/01306208eac492ee0e67bff143fc32d0551a2a6f.patch?full_index=1";
-      hash = "sha256-OnDrr72inzGXXYxPFQevsRZImSvI0uuqFHqtFU2dPQE=";
-    })
-
-    # See:
-    # * <https://github.com/boostorg/python/issues/394>
-    # * <https://aur.archlinux.org/cgit/aur.git/commit/?h=ceph&id=8c5cc7d8deec002f7596b6d0860859a0a718f12b>
-    # * <https://github.com/ceph/ceph/pull/60999>
-    ./patches/boost-1.86-PyModule.patch
-
-    (fetchpatch2 {
-      name = "ceph-cmake-4.patch";
-      url = "https://gitlab.alpinelinux.org/ashpool/aports/-/raw/d22b70eafe33c3daabe4eea6913c5be87d9463ad/community/ceph19/cpp_redis.patch";
-      hash = "sha256-wxPIsYt25CjXhJ6kmr/MXwFD58Sl4y4W+r9jAMND+uw=";
-    })
-
-    # See:
-    # * <https://github.com/ceph/ceph/pull/55560>
-    # * <https://github.com/ceph/ceph/pull/60575>
-    (fetchpatch2 {
-      name = "ceph-systemd-sans-cluster-name.patch";
-      url = "https://github.com/ceph/ceph/commit/5659920c7c128cb8d9552580dbe23dd167a56c31.patch?full_index=1";
-      hash = "sha256-Uch8ZghyTowUvSq0p/RxiVpdG1Yqlww9inpVksO6zyk=";
-    })
-    (fetchpatch2 {
-      name = "ceph-systemd-prefix.patch";
-      url = "https://github.com/ceph/ceph/commit/9b38df488d7101b02afa834ea518fd52076d582a.patch?full_index=1";
-      hash = "sha256-VcbJhCGTUdNISBd6P96Mm5M3fFVmZ8r7pMl+srQmnIQ=";
-    })
-
     # Remove once Ceph supports arrow-cpp >= 20, see:
     # * https://tracker.ceph.com/issues/71269
     # * https://github.com/NixOS/nixpkgs/issues/406306
