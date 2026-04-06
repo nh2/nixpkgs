@@ -64,22 +64,22 @@
   zstd,
 
   # Optional Dependencies
-  curl ? null,
-  expat ? null,
-  fuse ? null,
-  libatomic_ops ? null,
-  libedit ? null,
-  libs3 ? null,
-  yasm ? null,
+  curl,
+  expat,
+  fuse,
+  libatomic_ops,
+  libedit,
+  libs3,
+  yasm,
 
   # Mallocs
-  gperftools ? null,
-  jemalloc ? null,
+  gperftools,
+  jemalloc,
 
   # Crypto Dependencies
-  cryptopp ? null,
-  nspr ? null,
-  nss ? null,
+  cryptopp,
+  nspr,
+  nss,
 
   # Linux Only Dependencies
   linuxHeaders,
@@ -90,10 +90,10 @@
   keyutils,
   rdma-core,
   rabbitmq-c,
-  libaio ? null,
-  libxfs ? null,
-  liburing ? null,
-  zfs ? null,
+  libaio,
+  libxfs,
+  liburing,
+  zfs,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
 }:
 
