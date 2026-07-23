@@ -5,6 +5,7 @@
   makeDesktopItem,
   copyDesktopItems,
   cmake,
+  pkg-config,
   boost,
   cgal,
   eigen,
@@ -12,32 +13,74 @@
   gdal,
   gmp,
   laszip,
+  hidapi,
   mpfr,
   pcl,
-  libsForQt5,
+  qt6,
   onetbb,
   xercesc,
   wrapGAppsHook3,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "cloudcompare";
-  version = "2.13.2";
+  version = "2.13.2-unstable-2026-07-22";
 
   src = fetchFromGitHub {
     owner = "CloudCompare";
     repo = "CloudCompare";
-    tag = "v${version}";
-    hash = "sha256-a/0lf3Mt5ZpLFRM8jAoqZer8pY1ROgPRY4dPt34Bk3E=";
+    # TODO: Switch back to a release tag once one in includes this ref.
+    rev = "d2edaad207ea34990aae268d74c52b94c66b2ee6";
+    hash = "sha256-4GMzEhMgsWQ1wJSIeFQWGoZ9ughq9JoU09B9Wf+h9RM=";
     fetchSubmodules = true;
   };
 
+  # CloudCompare's 3DConnexion (3D mouse) support otherwise compiles a bundled
+  # `hidapi` Git submodule and installs its `libhidapi-hidraw.so.0` next to the
+  # executable, where it is not found at runtime (it is not on the RPATH).
+  # We could move it to `lib/` so it's found, but nixpkgs has a general
+  # desire to use its own packages unless an upstream software really
+  # benefits from using its bundled ones.
+  # So Instead, make it use nixpkgs' `hidapi`, which is API-compatible (CloudCompare
+  # only uses long-stable hidapi functions).
+  #
+  # Unfortunately, the way CloudCompare's CMake is written, that isn't
+  # as easy as it could be: By providing the `hidapi::hidapi`
+  # CMake target via `find_package`; this makes CloudCompare's own
+  # `if( NOT TARGET hidapi::hidapi )` guard skip building the submodule.
+  # The manual install of the submodule's `.so` is dropped accordingly.
+  # `GLOBAL` is required because imported targets created by `find_package` are
+  # otherwise only visible in the directory that created them, whereas this
+  # subdirectory links `hidapi` into the `CCAppCommon` target that is defined in
+  # its parent directory. That cross-directory linking is also why the file sets
+  # CMake policy `CMP0079` ("`target_link_libraries()` allows use with targets in
+  # other directories").
+  # Note that the search patterns below deliberately carry no leading
+  # indentation, because that file indents with tabs.
+  #
+  # If we find this to complex to maintain, moving CloudCompare's `.so` to `lib/`
+  # is probably the next best option.
+  postPatch = ''
+    substituteInPlace libs/CCAppCommon/devices/3dConnexion/CMakeLists.txt \
+      --replace-fail \
+        'if( NOT TARGET hidapi::hidapi )' \
+        'find_package( hidapi REQUIRED GLOBAL )
+        if( NOT TARGET hidapi::hidapi )' \
+      --replace-fail \
+        'set( HIDAPI_LIB ''${HIDAPI_BINARY_DIR}/src/linux/libhidapi-hidraw.so.0.16.0 )' \
+        '# hidapi comes from nixpkgs (see `postPatch`); nothing to install.' \
+      --replace-fail \
+        'install( FILES ''${HIDAPI_LIB} DESTINATION ''${CLOUDCOMPARE_DEST_FOLDER} RENAME "libhidapi-hidraw.so.0")' \
+        '# hidapi comes from nixpkgs (see `postPatch`); nothing to install.'
+  '';
+
   nativeBuildInputs = [
     cmake
+    pkg-config # required by some plugins' `find_package(PkgConfig REQUIRED)`
     eigen # header-only
     wrapGAppsHook3
     copyDesktopItems
-    libsForQt5.wrapQtAppsHook
+    qt6.wrapQtAppsHook
   ];
 
   buildInputs = [
@@ -47,11 +90,12 @@ stdenv.mkDerivation rec {
     gdal
     gmp
     laszip
+    hidapi # for the 3DConnexion (3D mouse) device support; see `postPatch`
     mpfr
     pcl
-    libsForQt5.qtbase
-    libsForQt5.qtsvg
-    libsForQt5.qttools
+    qt6.qtbase
+    qt6.qtsvg
+    qt6.qttools
     onetbb
     xercesc
   ];
@@ -71,6 +115,7 @@ stdenv.mkDerivation rec {
     "-DPLUGIN_IO_QE57=ON"
     "-DPLUGIN_IO_QFBX=OFF" # Autodesk FBX SDK is gratis+proprietary; not packaged in nixpkgs
     "-DPLUGIN_IO_QLAS=ON" # required for .las/.laz support
+    "-DLASZIP_INCLUDE_DIR=${lib.getInclude laszip}/include/laszip"
     "-DPLUGIN_IO_QPHOTOSCAN=ON"
     "-DPLUGIN_IO_QRDB=OFF" # Riegl rdblib is proprietary; not packaged in nixpkgs
 
@@ -160,4 +205,4 @@ stdenv.mkDerivation rec {
     mainProgram = "CloudCompare";
     platforms = with lib.platforms; linux; # only tested here; might work on others
   };
-}
+})
