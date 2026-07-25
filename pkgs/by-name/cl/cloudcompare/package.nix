@@ -13,7 +13,7 @@
   gdal,
   gmp,
   laszip,
-  hidapi,
+  libusb1,
   mpfr,
   pcl,
   qt6,
@@ -35,43 +35,25 @@ stdenv.mkDerivation (finalAttrs: {
     fetchSubmodules = true;
   };
 
-  # CloudCompare's 3DConnexion (3D mouse) support otherwise compiles a bundled
-  # `hidapi` Git submodule and installs its `libhidapi-hidraw.so.0` next to the
-  # executable, where it is not found at runtime (it is not on the RPATH).
-  # We could move it to `lib/` so it's found, but nixpkgs has a general
-  # desire to use its own packages unless an upstream software really
-  # benefits from using its bundled ones.
-  # So Instead, make it use nixpkgs' `hidapi`, which is API-compatible (CloudCompare
-  # only uses long-stable hidapi functions).
+  # CloudCompare's 3DConnexion (3D mouse) support compiles a bundled `hidapi` Git
+  # submodule and installs its `libhidapi-hidraw.so.0` into
+  # `CLOUDCOMPARE_DEST_FOLDER`, which on Linux is `bin`, that is, next to the
+  # executable. That works on Windows/macOS, where libraries next to the
+  # executable are found automatically, but not on NixOS, where there is no such
+  # implicit lookup, so CloudCompare fails to start with:
+  #     error while loading shared libraries: libhidapi-hidraw.so.0
   #
-  # Unfortunately, the way CloudCompare's CMake is written, that isn't
-  # as easy as it could be: By providing the `hidapi::hidapi`
-  # CMake target via `find_package`; this makes CloudCompare's own
-  # `if( NOT TARGET hidapi::hidapi )` guard skip building the submodule.
-  # The manual install of the submodule's `.so` is dropped accordingly.
-  # `GLOBAL` is required because imported targets created by `find_package` are
-  # otherwise only visible in the directory that created them, whereas this
-  # subdirectory links `hidapi` into the `CCAppCommon` target that is defined in
-  # its parent directory. That cross-directory linking is also why the file sets
-  # CMake policy `CMP0079` ("`target_link_libraries()` allows use with targets in
-  # other directories").
-  # Note that the search patterns below deliberately carry no leading
-  # indentation, because that file indents with tabs.
+  # Install it into `LINUX_INSTALL_SHARED_DESTINATION` (`$out/lib/cloudcompare`)
+  # instead, which upstream already assigns to `CMAKE_INSTALL_RPATH` for exactly
+  # this purpose (it is where CloudCompare's own shared libs go).
   #
-  # If we find this to complex to maintain, moving CloudCompare's `.so` to `lib/`
-  # is probably the next best option.
+  # Note it's also possible to use nixkpgs's `hidapi` entirely,
+  # but the required CMake patching is larger.
   postPatch = ''
     substituteInPlace libs/CCAppCommon/devices/3dConnexion/CMakeLists.txt \
       --replace-fail \
-        'if( NOT TARGET hidapi::hidapi )' \
-        'find_package( hidapi REQUIRED GLOBAL )
-        if( NOT TARGET hidapi::hidapi )' \
-      --replace-fail \
-        'set( HIDAPI_LIB ''${HIDAPI_BINARY_DIR}/src/linux/libhidapi-hidraw.so.0.16.0 )' \
-        '# hidapi comes from nixpkgs (see `postPatch`); nothing to install.' \
-      --replace-fail \
         'install( FILES ''${HIDAPI_LIB} DESTINATION ''${CLOUDCOMPARE_DEST_FOLDER} RENAME "libhidapi-hidraw.so.0")' \
-        '# hidapi comes from nixpkgs (see `postPatch`); nothing to install.'
+        'install( FILES ''${HIDAPI_LIB} DESTINATION ''${LINUX_INSTALL_SHARED_DESTINATION} RENAME "libhidapi-hidraw.so.0")'
   '';
 
   nativeBuildInputs = [
@@ -90,7 +72,7 @@ stdenv.mkDerivation (finalAttrs: {
     gdal
     gmp
     laszip
-    hidapi # for the 3DConnexion (3D mouse) device support; see `postPatch`
+    libusb1 # for the bundled `hidapi` of the 3DConnexion (3D mouse) support
     mpfr
     pcl
     qt6.qtbase
