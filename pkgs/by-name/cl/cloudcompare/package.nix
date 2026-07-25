@@ -49,11 +49,33 @@ stdenv.mkDerivation (finalAttrs: {
   #
   # Note it's also possible to use nixkpgs's `hidapi` entirely,
   # but the required CMake patching is larger.
+  #
+  # The PhotoScan plugin has a similar problem with its bundled `quazip`,
+  # which it adds via `add_subdirectory( extern/quazip EXCLUDE_FROM_ALL )`.
+  # `EXCLUDE_FROM_ALL` makes CMake ignore that subdirectory's `install()` rules,
+  # while `quazip` defaults to `BUILD_SHARED_LIBS=ON`, so its
+  # `libquazip1-qt6.so.1.5.0` is linked but never installed and the plugin fails
+  # to load at runtime with:
+  #     libQPHOTOSCAN_IO_PLUGIN.so does not seem to be a valid plugin
+  #     (... libquazip1-qt6.so.1.5.0: cannot open shared object file)
+  # So we build that `quazip` statically instead, so it is linked into the plugin
+  # and needs no install rule. This works because CloudCompare sets
+  # `CMAKE_POSITION_INDEPENDENT_CODE ON` globally.
+  # Note we set `BUILD_SHARED_LIBS` only around that `add_subdirectory` instead of
+  # passing it in `cmakeFlags`, because as a global variable it would also make
+  # the bundled `hidapi` static, which would break the `install()` patched above.
   postPatch = ''
     substituteInPlace libs/CCAppCommon/devices/3dConnexion/CMakeLists.txt \
       --replace-fail \
         'install( FILES ''${HIDAPI_LIB} DESTINATION ''${CLOUDCOMPARE_DEST_FOLDER} RENAME "libhidapi-hidraw.so.0")' \
         'install( FILES ''${HIDAPI_LIB} DESTINATION ''${LINUX_INSTALL_SHARED_DESTINATION} RENAME "libhidapi-hidraw.so.0")'
+
+    substituteInPlace plugins/core/IO/qPhotoscanIO/CMakeLists.txt \
+      --replace-fail \
+        'add_subdirectory( extern/quazip EXCLUDE_FROM_ALL )' \
+        'set( BUILD_SHARED_LIBS OFF )
+ add_subdirectory( extern/quazip EXCLUDE_FROM_ALL )
+ unset( BUILD_SHARED_LIBS )'
   '';
 
   nativeBuildInputs = [
