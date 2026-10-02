@@ -1,0 +1,27 @@
+From 3b58402fdac3bf351d0cf552101d2e9a290a0e7c Mon Sep 17 00:00:00 2001
+From: benaryorg <binary@benary.org>
+Date: Fri, 2 Oct 2026 02:03:24 +0000
+Subject: [PATCH] gcc16 compatibility
+
+`uint64_t` requires an include for `cstdint`.
+
+Signed-off-by: benaryorg <binary@benary.org>
+---
+ src/common/Formatter.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/common/Formatter.h b/src/common/Formatter.h
+index 05814ec66c3bffcc2d2f9173ad69857ffbe76c83..9d11133d6954b4d838fefaaed9a6fccb2e4a6179 100644
+--- a/src/common/Formatter.h
++++ b/src/common/Formatter.h
+@@ -5,6 +5,7 @@
+ 
+ #include "include/buffer_fwd.h"
+ 
++#include <cstdint>
+ #include <deque>
+ #include <fstream>
+ #include <functional>
+-- 
+2.55.0
+

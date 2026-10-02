@@ -31,5 +31,9 @@ applyPatches (final: {
     # fixes issues when python3 is not on the PATH
     # See: https://github.com/ceph/ceph/pull/67904
     ./patches/0001-mgr-python-interpreter.patch
+    # fixes compilation on the gcc version present in nixos-unstable
+    # There is no commit/PR/diff which can be easily fetchpatch'd so this requires vendoring.
+    # See: https://github.com/ceph/ceph/pull/67081
+    ./patches/0003-gcc16-cstdint.patch
   ];
 })
