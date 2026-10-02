@@ -31,5 +31,9 @@ applyPatches (final: {
     # fixes issues when python3 is not on the PATH
     # See: https://github.com/ceph/ceph/pull/67904
     ./patches/0001-mgr-python-interpreter.patch
+    # fixes compilation on the gcc version present in nixos-unstable
+    # See: https://github.com/ceph/ceph/pull/67081
+    # Source: https://aur.archlinux.org/cgit/aur.git/tree/ceph-20.2.1-backport-gcc16-fixes.patch?h=ceph&id=b158fda8a3e3834a7aa362954dc17077dc46f609#n4998
+    ./patches/0003-compiler-compat-67081.patch
   ];
 })
