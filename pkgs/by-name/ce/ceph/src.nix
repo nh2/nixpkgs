@@ -35,5 +35,13 @@ applyPatches (final: {
     # See: https://github.com/ceph/ceph/pull/67081
     # Source: https://aur.archlinux.org/cgit/aur.git/tree/ceph-20.2.1-backport-gcc16-fixes.patch?h=ceph&id=b158fda8a3e3834a7aa362954dc17077dc46f609#n4998
     ./patches/0003-compiler-compat-67081.patch
+    # GCC 16: radosgw fails to link with an undefined reference to
+    # `RGWSwiftWebsiteHandler::error_handler`.
+    # See: https://github.com/ceph/ceph/pull/69166
+    (fetchpatch2 {
+      name = "ceph-rgw-swift-error_handler-out-of-line.patch";
+      url = "https://github.com/ceph/ceph/commit/868fdd8120790ef453692604fff910e29c56cee1.patch?full_index=1";
+      hash = "sha256-yaqOrmw0ZItT2efzNfpDqjTRsva8VN0R+TLqbTX0snc=";
+    })
   ];
 })

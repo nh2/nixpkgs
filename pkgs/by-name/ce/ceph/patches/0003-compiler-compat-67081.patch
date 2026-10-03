@@ -4926,19 +4926,6 @@ index 05a0119d31e..8f7d5160338 100644
  };
  
  
-diff --git a/src/rgw/CMakeLists.txt b/src/rgw/CMakeLists.txt
-index 2b4517f5801..2f1b94838a0 100644
---- a/src/rgw/CMakeLists.txt
-+++ b/src/rgw/CMakeLists.txt
-@@ -459,7 +459,8 @@
-   target_link_libraries(rgw_a PRIVATE OpenSSL::Crypto)
- endif()
- 
- set(rgw_libs rgw_a)
-+list(APPEND rgw_libs rgw_common)
- 
- set(rgw_schedulers_srcs
-   rgw_dmclock_scheduler_ctx.cc
 diff --git a/src/rgw/driver/rados/rgw_datalog.cc b/src/rgw/driver/rados/rgw_datalog.cc
 index 8fe75e8a59a..f56e095b63d 100644
 --- a/src/rgw/driver/rados/rgw_datalog.cc
@@ -4987,16 +4974,3 @@ index 7050940220b..c2e7f02e74b 100644
  #include <memory>
  #include <optional>
  #include <span>
-diff --git a/src/test/CMakeLists.txt b/src/test/CMakeLists.txt
-index 1ff3871a576..13822866d41 100644
---- a/src/test/CMakeLists.txt
-+++ b/src/test/CMakeLists.txt
-@@ -80,7 +80,8 @@
- endif(NOT WIN32)
- 
- if(WITH_RADOSGW)
-   set(rgw_libs rgw_a)
-+  list(APPEND rgw_libs rgw_common)
-   if(WITH_RADOSGW_AMQP_ENDPOINT)
-     list(APPEND rgw_libs amqp_mock)
-   endif()
